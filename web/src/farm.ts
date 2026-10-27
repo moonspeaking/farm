@@ -284,7 +284,10 @@ export class Farm extends Container {
     this.weatherIcon.texture = tex(w === "normal" ? "weather_normal" : `weather_${w}`);
     this.weatherIcon.x = 111 - this.weatherIcon.width;
     this.arriver.startDay(this.rules, this.game.day, this.rules.weather[w]?.bug_arrive ?? 1);
-    for (const rid of this.ridges) rid.resume();
+    for (const rid of this.ridges) {
+      rid.resetThirst();
+      rid.resume();
+    }
     audio.play("day_start");
     this.renderStats();
   }

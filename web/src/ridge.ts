@@ -187,6 +187,14 @@ export class RidgeView extends Container {
     return { name, thirstLost, damage, thirstIn, thirstTotal, produceIn, produceTotal, harvested, products: [...products] };
   }
 
+  /** Начало дня: время жизни без воды выбирается заново (с погодой нового дня), как после полива. */
+  resetThirst() {
+    const p = this.plant;
+    if (!p) return;
+    p.thirstTotal = this.nextThirst(p.def);
+    p.thirstIn = p.thirstTotal;
+  }
+
   /** Полив днём: true, если растение хотело пить. */
   water(): boolean {
     const p = this.plant;
