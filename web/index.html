@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>Ферма Айрис</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #10140c; overflow: hidden; touch-action: none; }
+      #game { position: fixed; inset: 0; }
+      #loading { position: fixed; inset: 0; display: grid; place-items: center; color: #e8f0c8; font: 18px system-ui, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="loading">Идет загрузка…</div>
+    <div id="game"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

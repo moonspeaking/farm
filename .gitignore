@@ -1,0 +1,16 @@
+.DS_Store
+node_modules/
+dist/
+*.log
+.idea/
+.vscode/
+web/android/build/
+web/android/app/build/
+web/android/.gradle/
+web/android/local.properties
+web/android/capacitor-cordova-android-plugins/build/
+web/android/app/src/main/assets/public/
+web/android/app/src/main/assets/capacitor.config.json
+web/android/app/src/main/assets/capacitor.plugins.json
+__pycache__/
+*.pyc
