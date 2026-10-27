@@ -132,6 +132,8 @@ export class Farm extends Container {
   private endPrompt: Container | null = null;
   /** Пустая грядка, на которой сейчас показана кнопка «Посадить растение». */
   private plantTarget: RidgeView | null = null;
+  /** Грядка с растением, у которой сейчас кнопка «Продать» (одна, как «Посадить растение»). */
+  private sellTarget: RidgeView | null = null;
   /** Покупка (грядка, бочка, ящик, колодец), у которой сейчас показана кнопка «Купить». */
   private buyTarget: string | null = null;
   private wellFilling = 0;
@@ -180,7 +182,8 @@ export class Farm extends Container {
     clock.addChild(this.pointer, this.weatherIcon, image("clock_fore"));
     clock.position.set(689, 0);
     this.startBtn = roundButton(t.buttons.start_new_day ?? "Начать День", () => void this.startDay());
-    this.startBtn.position.set(527 + 103, -110 + 99);
+    // в XML 527; −110, но кнопка заходит на часы дня — сдвинута влево, чтобы не накладываться на них
+    this.startBtn.position.set(482 + 103, -110 + 99);
     this.townBtn = roundButton(t.buttons.to_town_from_shop ?? "В Город", () => {
       audio.play("btn_simple_button_activated");
       this.events.toTown();
@@ -417,9 +420,15 @@ export class Farm extends Container {
     const r = new RidgeView(place, this.rules, this.game, {
       tap: (ridge) => this.tapRidge(ridge),
       hover: (ridge) => {
-        // кнопка «Посадить растение» одна: стоит на грядке под курсором, пока курсор не перейдёт на другую пустую
-        if (this.mode !== "shop" || ridge.plant || this.plantTarget === ridge) return;
-        this.plantTarget = ridge;
+        // кнопки «Посадить растение» и «Продать» по одной: стоят на грядке под курсором, пока курсор не перейдёт на другую
+        if (this.mode !== "shop") return;
+        if (ridge.plant) {
+          if (this.sellTarget === ridge) return;
+          this.sellTarget = ridge;
+        } else {
+          if (this.plantTarget === ridge) return;
+          this.plantTarget = ridge;
+        }
         this.renderShop();
       },
       say: (s, x, y) => {
@@ -704,6 +713,7 @@ export class Farm extends Container {
 
   private renderShop() {
     this.clearShop();
+    for (const r of this.ridges) r.setPlantCursor(this.mode === "day" ? "pour" : "default");
     if (this.mode !== "shop" || this.bouquets) return;
     const t = this.rules.texts;
     const g = this.game;
@@ -719,6 +729,9 @@ export class Farm extends Container {
     const empty = this.ridges.filter((r) => !r.plant);
     const target = this.plantTarget && empty.includes(this.plantTarget) ? this.plantTarget : (empty[0] ?? null);
     this.plantTarget = target;
+    const planted = this.ridges.filter((r) => r.plant);
+    const seller = this.sellTarget && planted.includes(this.sellTarget) ? this.sellTarget : (planted[0] ?? null);
+    this.sellTarget = seller;
     for (const r of this.ridges) {
       const [ax, ay] = [r.x + r.anchorPoint[0], r.y + r.anchorPoint[1]];
       if (!r.plant) {
@@ -732,6 +745,7 @@ export class Farm extends Container {
         add(shopButton("medium", fmt(t.buttons.buy_veg ?? "Посадить\nрастение"), null, () => void this.chooseSeed(r)), ax, ay - 30);
         continue;
       }
+      if (r !== seller) continue;
       const p = r.plant;
       const sell = shopButton("small", price(g.sellPrice(p.def.price_sell)), t.buttons.sell_veg ?? "Продать", () => void this.sellPlant(r));
       sell.scale.set(0.9);

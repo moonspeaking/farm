@@ -112,14 +112,11 @@ export class Town extends Container {
     this.tut.show("town_talker", 0, 0);
   }
 
-  /**
-   * Персонаж стоит в городе, когда у него есть задание (сыщик «приезжает» на следующий день и т. д.);
-   * слуга Айрис живёт здесь и виден всегда.
-   */
+  /** Персонаж стоит в городе, только когда у него есть задание (сыщик «приезжает» на следующий день и т. д.). */
   refresh() {
     for (const name of Object.keys(this.people)) {
       const has = this.quests.available(name).length > 0;
-      for (const c of this.people[name]) c.visible = has || name === "old_servant";
+      for (const c of this.people[name]) c.visible = has;
     }
   }
 

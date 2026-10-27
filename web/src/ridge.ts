@@ -75,6 +75,14 @@ export class RidgeView extends Container {
     this.lives.position.set(this.anchorPoint[0] + p.attack_vegetation.offset[0], this.anchorPoint[1] + p.attack_vegetation.offset[1]);
   }
 
+  /** Курсор над растением: «полив» только в течение дня, между днями растение ничего не поливает. */
+  private plantCursor = "pour";
+
+  setPlantCursor(cursor: string) {
+    this.plantCursor = cursor;
+    if (this.plant) this.plant.view.cursor = cursor;
+  }
+
   /** Запас жизни: life из XML и умение «фермерство» (vegetation_life). */
   get maxLife() {
     return (this.plant?.def.life ?? 1) * (1 + this.game.bonus("farm", "vegetation_life"));
@@ -89,8 +97,9 @@ export class RidgeView extends Container {
     // image_offset из XML — сдвиг картинки растения от точки опоры
     view.position.set(this.anchorPoint[0] + def.image_offset[0], this.anchorPoint[1] + def.image_offset[1]);
     view.eventMode = "static";
-    view.cursor = "pour";
+    view.cursor = this.plantCursor;
     view.on("pointertap", () => this.events.tap(this));
+    view.on("pointerover", () => this.events.hover(this));
     this.plantLayer.addChild(view);
     const thirstTotal = this.nextThirst(def);
     const produceTotal = this.nextProduce(def, name);
