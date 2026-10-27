@@ -63,7 +63,8 @@ export class Menu extends Container {
     ok.position.set(612 + 103, 517 + 99);
     // подложка перевёрнута (ободок снизу), подпись остаётся прямой и лежит в видимой части экрана (y ≈ 570)
     ok.children[0].rotation = Math.PI;
-    ok.children[1].y = -47;
+    ok.children[1].y = -43;
+    ok.children[1].scale.set(1.15); // подпись в оригинале примерно на 15% крупнее и на 4 px ниже
     layer.addChild(ok);
     this.overlay.addChild(layer);
   }
