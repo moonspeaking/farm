@@ -497,6 +497,7 @@ def main():
     rules["tutorial_steps"] = export_tutorial(props)
     rules["holders"] = holders
     rules["texts"]["characters"] = dict(ru.find("characters").attrib)
+    rules["texts"]["global_map"] = dict(ru.find("global_map").attrib)
     rules["texts"]["buttons_menu"] = {k: rules["texts"]["buttons"].get(k, "") for k in
                                       ("game_adventure", "options", "menu_highscores", "menu_exit", "new_game", "continue_game")}
 

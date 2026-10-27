@@ -2226,6 +2226,12 @@
    "pirate_leader": "Курт Риппер",
    "traveller": "Доктор Иви"
   },
+  "global_map": {
+   "town_1": "Роземонт",
+   "town_2": "Порт Эрроухэд",
+   "town_3": "Остров Хило",
+   "town_4": "Долина Теней"
+  },
   "buttons_menu": {
    "game_adventure": "Кампания",
    "options": "Опции",

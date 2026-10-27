@@ -135,6 +135,7 @@ export interface Rules {
     buy_water: Record<string, string>;
     new_game: Record<string, string>;
     characters: Record<string, string>;
+    global_map: Record<string, string>;
     buttons_menu: Record<string, string>;
     bug_names: Record<string, string>;
     skill_names: Record<string, string>;

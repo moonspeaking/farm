@@ -16,7 +16,7 @@ export class WorldMap extends Container {
   private readonly tip = pop("", "Verdana14", COLOR.white, { align: "center" });
   private readonly tipBack = new Graphics();
 
-  constructor(rules: Rules, private readonly game: Game, private readonly events: MapEvents, private readonly tut: Tutorial) {
+  constructor(private readonly rules: Rules, private readonly game: Game, private readonly events: MapEvents, private readonly tut: Tutorial) {
     super();
     const t = rules.texts;
     this.addChild(image("global_map_back"));
@@ -62,9 +62,10 @@ export class WorldMap extends Container {
     return !!reg[`location_${num}`];
   }
 
-  /** Названий мест в ru.xml нет — подпись общая. */
+  /** Названия городов — global_map в ru.xml; у ферм своих названий нет, подпись — по городу рядом. */
   private placeName(kind: string, n: number) {
-    return `${kind === "town" ? "Город" : "Ферма"} ${n}`;
+    const town = this.rules.texts.global_map[`town_${n}`] ?? `Город ${n}`;
+    return kind === "town" ? town : `Ферма (${town})`;
   }
 
   private showTip(text: string, x: number, y: number) {

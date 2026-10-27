@@ -55,15 +55,15 @@ export class Menu extends Container {
   private comics() {
     const layer = new Container();
     layer.addChild(image("comics"));
-    const ok = roundButton(this.rules.texts.buttons.ok || "OK", () => {
+    const ok = roundButton(this.rules.texts.buttons_menu.continue_game || "Продолжить", () => {
       layer.destroy({ children: true });
       this.events.play(true);
     });
     // first_comics/ok: 612; 517 — кнопка уходит за нижний край
     ok.position.set(612 + 103, 517 + 99);
-    ok.rotation = Math.PI;
-    ok.children[1].rotation = Math.PI;
-    ok.children[1].y = -52;
+    // подложка перевёрнута (ободок снизу), подпись остаётся прямой и лежит в видимой части экрана (y ≈ 570)
+    ok.children[0].rotation = Math.PI;
+    ok.children[1].y = -47;
     layer.addChild(ok);
     this.overlay.addChild(layer);
   }
