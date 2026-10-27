@@ -651,17 +651,17 @@ export class Farm extends Container {
       this.shopLayer.addChild(b);
     };
 
-    // грядки: посадить / продать. Если денег не хватает ни на одно растение, кнопка красная (cant_buy) и только на одной грядке
+    // грядки: «Посадить растение» только на одной (первой пустой) грядке; если денег не хватает ни на одно растение — красная (cant_buy)
     const seeds = g.hasMark("shop_vegetation") ? g.seeds : g.seeds.filter((s) => this.rules.start.vegetations.includes(s));
     const cheapest = Math.min(...seeds.map((s) => g.buyPrice(this.rules.vegetations[s].price_buy)));
     const broke = g.gold < cheapest;
-    let cantShown = false;
+    let plantShown = false;
     for (const r of this.ridges) {
       const [ax, ay] = [r.x + r.anchorPoint[0], r.y + r.anchorPoint[1]];
       if (!r.plant) {
+        if (plantShown) continue;
+        plantShown = true;
         if (broke) {
-          if (cantShown) continue;
-          cantShown = true;
           const b = shopButton("medium", fmt(t.buttons.buy_veg ?? "Посадить\nрастение"), null, () => this.notEnough());
           b.setEnabled(false);
           add(b, ax, ay - 30);
@@ -726,11 +726,15 @@ export class Farm extends Container {
     }
 
     // «Купить Воду» (433; 32) и «Продать Плоды» (547; 86) — средние кнопки
-    const water = shopButton("medium", fmt(t.buttons.shop_button_buy_water ?? "Купить\nВоду"), null, () => this.openBuyWater());
-    add(water, this.rules.shop_positions.buy_water[0] + 50, this.rules.shop_positions.buy_water[1] + 30);
-    const sell = shopButton("medium", fmt(t.buttons.shop_button_sell_prod ?? "Продать\nПлоды"), null, () => this.openBouquets());
-    sell.setEnabled(g.storageCount() > 0 || g.bouquets.orders.some((o) => o.placed.some(Boolean)));
-    add(sell, this.rules.shop_positions.sell_prod[0] + 50, this.rules.shop_positions.sell_prod[1] + 30);
+    // нечего покупать (бочки полны) и нечего продавать (нет плодов и собранных букетов) — кнопок нет
+    if (g.water < g.waterMax) {
+      const water = shopButton("medium", fmt(t.buttons.shop_button_buy_water ?? "Купить\nВоду"), null, () => this.openBuyWater());
+      add(water, this.rules.shop_positions.buy_water[0] + 50, this.rules.shop_positions.buy_water[1] + 30);
+    }
+    if (g.storageCount() > 0 || g.bouquets.orders.some((o) => o.placed.some(Boolean))) {
+      const sell = shopButton("medium", fmt(t.buttons.shop_button_sell_prod ?? "Продать\nПлоды"), null, () => this.openBouquets());
+      add(sell, this.rules.shop_positions.sell_prod[0] + 50, this.rules.shop_positions.sell_prod[1] + 30);
+    }
     void names;
   }
 
