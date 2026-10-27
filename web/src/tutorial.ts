@@ -30,14 +30,16 @@ export class Tutorial extends Container {
     const relative = !step || step.pos[0] === 0;
     const box = new Container();
 
-    // затемнение с «окном»: светлая картинка вырезается из чёрной плёнки
+    // затемнение; светлая картинка под ним: у портретов говорящих (talker_*) она рисуется, у остальных вырезается из плёнки
     if (step?.image) {
-      const hole = image(step.image);
-      if (relative) hole.position.set(x - hole.width / 2, y - hole.height / 2);
-      else hole.position.set(...step.image_pos);
-      hole.blendMode = "erase";
+      const pic = image(step.image);
+      if (relative) pic.position.set(x - pic.width / 2, y - pic.height / 2);
+      else pic.position.set(...step.image_pos);
+      const drawn = step.image.startsWith("talker_");
+      if (!drawn) pic.blendMode = "erase";
       const fade = new Container();
-      fade.addChild(new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: step.alpha }), hole);
+      fade.addChild(new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: step.alpha }));
+      if (!drawn) fade.addChild(pic);
       fade.cacheAsTexture(true);
       fade.eventMode = "static";
       fade.on("pointertap", (e) => {
@@ -45,30 +47,41 @@ export class Tutorial extends Container {
         this.hide();
       });
       box.addChild(fade);
+      if (drawn) box.addChild(pic);
     }
 
-    const label = pop(fmt(text), "Verdana14", COLOR.black, { wrap: 260, lineOffset: -3 });
-    const close = textButton(this.rules.texts.buttons.tutorial_baloon_close ?? "Закрыть", () => this.hide(), "shop");
-    const w = Math.max(label.textWidth, 110) + 24;
-    const h = label.textHeight + 18 + 34;
+    // пузырь оригинала: тёмно-зелёный (17; 102; 21, 230/255) с чёрной рамкой, белый текст Verdana14,
+    // хвостик — картинка buy_veg_baloon (28 × 18) на одном из нижних углов, остриё на 11 px от края
+    const label = pop(fmt(text), "Verdana14", COLOR.white, { wrap: 300 });
+    const withClose = id !== "town_talker_large";
+    const close = textButton(this.rules.texts.buttons.tutorial_baloon_close ?? "Закрыть", () => this.hide(), "small");
+    const w = Math.max(label.textWidth, 60) + 14;
+    const h = label.textHeight + 10 + (withClose ? 36 : 0);
     // точка, на которую указывает хвостик
     const tip: [number, number] = relative ? [x + (step?.pos[0] ?? 0), y + (step?.pos[1] ?? 0)] : [step.pos[0], step.pos[1]];
     const pointer = step ? step.pointer : true;
-    const above = pointer ? tip[1] - h - 26 > 0 : false;
-    const bx = Math.max(110, Math.min(W - w - 10, pointer ? tip[0] - w / 2 : tip[0]));
-    const by = pointer ? (above ? tip[1] - h - 22 : tip[1] + 22) : Math.max(10, Math.min(H - h - 10, tip[1]));
+    const rightTail = tip[0] >= W / 2;
+    const above = !pointer || tip[1] - 17 - h >= 4;
+    let bx = pointer ? (rightTail ? tip[0] + 11 - w : tip[0] - 11) : tip[0];
+    bx = Math.max(4, Math.min(W - w - 4, bx));
+    const by = pointer ? (above ? tip[1] - 17 - h : tip[1] + 17) : Math.max(4, Math.min(H - h - 4, tip[1]));
     const balloon = new Graphics();
-    // светло-зелёный пузырь с тёмно-зелёной обводкой и хвостиком к цели, как tooltip/baloon.png
-    balloon.roundRect(bx, by, w, h, 12).fill({ color: 0xe9ffc4 }).stroke({ color: 0x2f9a1c, width: 3 });
-    if (pointer) {
-      const tx = Math.max(bx + 16, Math.min(bx + w - 16, tip[0]));
-      if (above) balloon.poly([tx - 9, by + h - 1, tx + 9, by + h - 1, tip[0], tip[1] - 2]).fill({ color: 0xe9ffc4 }).stroke({ color: 0x2f9a1c, width: 3 });
-      else balloon.poly([tx - 9, by + 1, tx + 9, by + 1, tip[0], tip[1] + 2]).fill({ color: 0xe9ffc4 }).stroke({ color: 0x2f9a1c, width: 3 });
-    }
-    label.position.set(bx + 12, by + 9);
-    close.position.set(bx + w / 2, by + h - 18);
+    balloon.roundRect(bx, by, w, h, 3).fill({ color: 0x116615, alpha: 230 / 255 }).stroke({ color: 0x000000, width: 1 });
     const bubble = new Container();
-    bubble.addChild(balloon, label, close);
+    bubble.addChild(balloon);
+    if (pointer) {
+      const tail = image("veg_baloon");
+      tail.scale.set(rightTail ? 1 : -1, above ? 1 : -1);
+      // правый край картинки совпадает с правым краем пузыря (остриё на 11 px левее), у зеркальной — левый с левым
+      tail.position.set(rightTail ? bx + w - 27 : bx + 27, above ? by + h - 3 : by + 3);
+      bubble.addChild(tail);
+    }
+    label.position.set(bx + 7, by + 5);
+    bubble.addChild(label);
+    if (withClose) {
+      close.position.set(bx + w / 2, by + h - 20);
+      bubble.addChild(close);
+    }
     bubble.eventMode = "static";
     box.addChild(bubble);
     this.addChild(box);

@@ -4742,7 +4742,7 @@
     250.0
    ],
    "alpha": 0.5,
-   "pointer": false,
+   "pointer": true,
    "image": null,
    "image_pos": [
     0.0,
@@ -4833,7 +4833,7 @@
     75.0
    ],
    "alpha": 0.5,
-   "pointer": false,
+   "pointer": true,
    "image": "shop_medium",
    "image_pos": [
     433.0,
@@ -4872,7 +4872,7 @@
     120.0
    ],
    "alpha": 0.5,
-   "pointer": false,
+   "pointer": true,
    "image": "map_town_1",
    "image_pos": [
     0.0,
@@ -4937,7 +4937,7 @@
     160.0
    ],
    "alpha": 0.5,
-   "pointer": false,
+   "pointer": true,
    "image": "shop_medium",
    "image_pos": [
     549.0,
@@ -4976,7 +4976,7 @@
     280.0
    ],
    "alpha": 0.5,
-   "pointer": false,
+   "pointer": true,
    "image": "talker_old_servant",
    "image_pos": [
     107.0,

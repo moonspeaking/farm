@@ -271,7 +271,7 @@ def export_tutorial(props):
             continue
         path = a.get("unfade_img_path", "").replace("\\", "/")
         steps[el.tag] = {"pos": vec(a["baloon_pos"]), "alpha": float(a.get("fader_alpha", 0.5)),
-                         "pointer": a.get("baloon_base", "").endswith("baloon"),
+                         "pointer": not a.get("baloon_base", "").endswith("no_pointer"),
                          "image": UNFADE.get(path), "image_pos": vec(a.get("unfade_img_pos", "0;0"))}
     return steps
 
