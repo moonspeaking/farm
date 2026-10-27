@@ -853,11 +853,11 @@ export class Farm extends Container {
     title.position.set(0, 46);
     // ширина с запасом, чтобы описание не переносилось на вторую строку; строку «Деньги» не показываем — деньги видны на панели
     const desc = pop(t.buy_water.desc ?? "", "Verdana14", ink, { align: "center", wrap: 420 });
-    desc.position.set(0, 82);
+    desc.position.set(0, 80);
     const water = pop("", "BritannicBold14", rgb(60, 60, 160), { align: "center" });
-    water.position.set(0, 122);
+    water.position.set(0, 110);
     const priceLabel = pop("", "BritannicBold14", ink, { align: "center" });
-    priceLabel.position.set(0, 150);
+    priceLabel.position.set(0, 136);
     box.addChild(title, desc, water, priceLabel);
     const close = () => {
       layer.destroy({ children: true });
@@ -879,11 +879,11 @@ export class Farm extends Container {
       this.renderStorages();
     };
     const b1 = textButton(t.buttons.buy_water ?? "Купить литр воды", () => buy(1));
-    b1.position.set(0, 200);
+    b1.position.set(0, 180);
     const b2 = textButton(t.buttons.buy_water_all ?? "Заполнить Все", () => buy(1e9));
-    b2.position.set(0, 238);
+    b2.position.set(0, 214);
     const b3 = textButton(t.buttons.buy_water_exit ?? "Закрыть", close);
-    b3.position.set(0, 276);
+    b3.position.set(0, 248);
     box.addChild(b1, b2, b3);
     shade.on("pointertap", close);
     refresh();
