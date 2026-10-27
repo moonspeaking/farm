@@ -148,7 +148,6 @@ export class Farm extends Container {
     this.weatherIcon.position.set(111 - this.weatherIcon.width, 0);
     clock.addChild(this.pointer, this.weatherIcon, image("clock_fore"));
     clock.position.set(689, 0);
-    this.top.addChild(clock);
     this.startBtn = roundButton(t.buttons.start_new_day ?? "Начать День", () => void this.startDay());
     this.startBtn.position.set(527 + 103, -110 + 99);
     this.townBtn = roundButton(t.buttons.to_town_from_shop ?? "В Город", () => {
@@ -156,7 +155,8 @@ export class Farm extends Container {
       this.events.toTown();
     });
     this.townBtn.position.set(193 + 103, -110 + 99);
-    this.top.addChild(this.startBtn, this.townBtn);
+    // часы дня рисуются поверх кнопки «Начать День»: её правый край заходит под них
+    this.top.addChild(this.startBtn, this.townBtn, clock);
 
     // ---------------- сохранение
     rules.ridges.forEach((p) => this.addRidge(p));
