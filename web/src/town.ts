@@ -1,5 +1,5 @@
 // Город первой локации (town_screen): персонажи с заданиями, продавцы, возврат на ферму.
-import { Container, Graphics, Sprite } from "pixi.js";
+import { Container, Graphics } from "pixi.js";
 import { Hud } from "./hud";
 import type { QuestEngine } from "./quests";
 import type { Rules } from "./rules";
@@ -17,7 +17,6 @@ export interface TownEvents {
 }
 
 export class Town extends Container {
-  private readonly markers: Record<string, Sprite> = {};
   /** Картинка и подпись каждого персонажа — прячутся, пока у него нет заданий. */
   private readonly people: Record<string, Container[]> = {};
   private readonly overlay = new Container();
@@ -46,17 +45,12 @@ export class Town extends Container {
       s.eventMode = "static";
       s.cursor = "talk";
       s.on("pointertap", () => void this.talk(name));
-      const mark = image("quest_info");
-      mark.anchor.set(0.5, 1);
-      mark.scale.set(1.3);
-      mark.position.set(s.x + s.width / 2, s.y + 64);
-      this.markers[name] = mark;
       // имя персонажа — плашка у курсора при наведении (курсор «губы» задан cursor = "talk")
       s.on("pointerover", (e) => this.showName(name, e.global.x, e.global.y));
       s.on("pointermove", (e) => this.showName(name, e.global.x, e.global.y));
       s.on("pointerout", () => this.hideName());
       this.people[name] = [s];
-      this.addChild(s, mark);
+      this.addChild(s);
     }
 
     // круглые кнопки town_screen, как на ферме: to_global_map (193; -110) и shop_screen_farm (527; -110)
@@ -119,9 +113,8 @@ export class Town extends Container {
    * слуга Айрис живёт здесь и виден всегда.
    */
   refresh() {
-    for (const [name, mark] of Object.entries(this.markers)) {
+    for (const name of Object.keys(this.people)) {
       const has = this.quests.available(name).length > 0;
-      mark.visible = has;
       for (const c of this.people[name]) c.visible = has || name === "old_servant";
     }
   }
