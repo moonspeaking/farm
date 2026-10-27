@@ -4,7 +4,7 @@ import type { FontName, PopLabel } from "./popfont";
 import { rgb } from "./popfont";
 import type { Rules } from "./rules";
 import type { Game } from "./state";
-import { Emitter, ParticleLayer } from "./particles";
+import { ParticleLayer } from "./particles";
 import { COLOR, image, pop } from "./ui";
 
 export interface HudEvents {
@@ -20,7 +20,6 @@ export class Hud extends Container {
   private blink = 0;
   private readonly particles = new ParticleLayer();
   private shown: Record<"storage" | "water" | "money", number> | null = null;
-  private levelFx: Emitter | null = null;
 
   constructor(rules: Rules, private readonly game: Game, events: HudEvents) {
     super();
@@ -112,11 +111,6 @@ export class Hud extends Container {
     if (this.game.skillPoints > 0) {
       const a = 0.35 + 0.35 * Math.sin(this.blink * 6);
       this.glow.roundRect(29, 120, 67, 17, 7).stroke({ color: 0xffee66, width: 3, alpha: a });
-      // level-available: бесконечный эмиттер над полоской опыта, пока есть свободные очки умений
-      this.levelFx ??= this.particles.start("level-available", 62, 128);
-    } else if (this.levelFx) {
-      this.levelFx.stop();
-      this.levelFx = null;
     }
   }
 }

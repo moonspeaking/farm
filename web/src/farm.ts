@@ -13,7 +13,7 @@ import { family, RidgeView } from "./ridge";
 import { fmt, Place, Rules, StorageLevel } from "./rules";
 import type { Game, PlantSave, Weather } from "./state";
 import { Tutorial } from "./tutorial";
-import { COLOR, dialog, floatPoints, H, image, pop, roundButton, shopButton, tex, textButton, toast, W } from "./ui";
+import { COLOR, dialog, floatPoints, H, image, pop, roundButton, shopButton, type ShopButton, tex, textButton, toast, W } from "./ui";
 
 type Mode = "shop" | "day";
 
@@ -101,6 +101,8 @@ export class Farm extends Container {
   private endPrompt: Container | null = null;
   /** Пустая грядка, на которой сейчас показана кнопка «Посадить растение». */
   private plantTarget: RidgeView | null = null;
+  /** Покупка (грядка, бочка, ящик, колодец), у которой сейчас показана кнопка «Купить». */
+  private buyTarget: string | null = null;
   private wellFilling = 0;
   private pailBase: [number, number] = [0, 0];
 
@@ -120,6 +122,7 @@ export class Farm extends Container {
     this.well.eventMode = "static";
     this.well.cursor = "pour";
     this.well.on("pointertap", () => this.tapWell());
+    this.well.on("pointerover", () => this.setBuyTarget("well"));
     this.pail = new Container();
     this.pail.addChild(image("pail"));
     this.pailWater = image("pail_water");
@@ -532,6 +535,12 @@ export class Farm extends Container {
     this.waterRidge(r, false);
   }
 
+  private setBuyTarget(key: string) {
+    if (this.mode !== "shop" || this.buyTarget === key) return;
+    this.buyTarget = key;
+    this.renderShop();
+  }
+
   /** Денег не хватает ни на одно из доступных растений. */
   private cantAffordSeed() {
     const g = this.game;
@@ -698,6 +707,14 @@ export class Farm extends Container {
       add(sell, ax, ay + 24);
     }
 
+    // покупки: полупрозрачные объекты видны все, а кнопка «Купить» одна — у объекта под курсором (по умолчанию у первого)
+    const buyables: { key: string; button: () => ShopButton; at: [number, number] }[] = [];
+    const ghostOf = (key: string, ghost: Sprite) => {
+      ghost.eventMode = "static";
+      ghost.on("pointerover", () => this.setBuyTarget(key));
+      this.shopLayer.addChild(ghost);
+    };
+
     // места под новые грядки (с 10-го дня, метка shop_ridges)
     if (g.hasMark("shop_ridges")) {
       this.rules.ridges_for_sale.forEach((place, i) => {
@@ -708,11 +725,17 @@ export class Farm extends Container {
         const cx = place.position[0] + place.dimensions[0] / 2;
         const cy = place.position[1] + place.dimensions[1] / 2;
         ghost.position.set(cx, cy);
-        this.shopLayer.addChild(ghost);
+        ghostOf(`ridge:${i}`, ghost);
         const cost = g.buyPrice(this.rules.prices.ridge);
-        const b = shopButton("small", price(cost), t.buttons.buy_ridge ?? "Купить", () => void this.buyRidge(i));
-        b.setEnabled(g.gold >= cost);
-        add(b, cx, cy - 22);
+        buyables.push({
+          key: `ridge:${i}`,
+          at: [cx, cy - 22],
+          button: () => {
+            const b = shopButton("small", price(cost), t.buttons.buy_ridge ?? "Купить", () => void this.buyRidge(i));
+            b.setEnabled(g.gold >= cost);
+            return b;
+          },
+        });
       });
     }
 
@@ -722,30 +745,51 @@ export class Farm extends Container {
       const ghost = image("barrel");
       ghost.alpha = 0.4;
       ghost.position.set(...nextBarrel.position);
-      this.shopLayer.addChild(ghost);
+      ghostOf("barrel", ghost);
       const cost = g.buyPrice(nextBarrel.price);
-      const b = shopButton("small", price(cost), t.buttons.buy_barrel ?? "Купить", () => this.buyStorage("barrels", nextBarrel.price));
-      b.setEnabled(g.gold >= cost);
-      // buy_barrel: смещение (10; 50) от объекта
-      add(b, nextBarrel.position[0] + 10 + 50, nextBarrel.position[1] + 50 + 30);
+      buyables.push({
+        key: "barrel",
+        // buy_barrel: смещение (10; 50) от объекта
+        at: [nextBarrel.position[0] + 10 + 50, nextBarrel.position[1] + 50 + 30],
+        button: () => {
+          const b = shopButton("small", price(cost), t.buttons.buy_barrel ?? "Купить", () => this.buyStorage("barrels", nextBarrel.price));
+          b.setEnabled(g.gold >= cost);
+          return b;
+        },
+      });
     }
     const nextBox = this.rules.product_storage[g.boxes];
     if (nextBox && g.hasMark("shop_box")) {
       const ghost = image(this.rules.box_image);
       ghost.alpha = 0.4;
       ghost.position.set(...nextBox.position);
-      this.shopLayer.addChild(ghost);
+      ghostOf("box", ghost);
       const cost = g.buyPrice(nextBox.price);
-      const b = shopButton("small", price(cost), t.buttons.buy_box ?? "Купить", () => this.buyStorage("boxes", nextBox.price));
-      b.setEnabled(g.gold >= cost);
-      add(b, nextBox.position[0] + 20 + 50, nextBox.position[1] + 35 + 30);
+      buyables.push({
+        key: "box",
+        at: [nextBox.position[0] + 20 + 50, nextBox.position[1] + 35 + 30],
+        button: () => {
+          const b = shopButton("small", price(cost), t.buttons.buy_box ?? "Купить", () => this.buyStorage("boxes", nextBox.price));
+          b.setEnabled(g.gold >= cost);
+          return b;
+        },
+      });
     }
     if (!g.well && g.hasMark("shop_well")) {
       const cost = g.buyPrice(this.rules.well.price);
-      const b = shopButton("small", price(cost), t.buttons.buy_well ?? "Купить", () => this.buyWell());
-      b.setEnabled(g.gold >= cost);
-      add(b, this.rules.shop_positions.well[0] + 50, this.rules.shop_positions.well[1] + 30);
+      buyables.push({
+        key: "well",
+        at: [this.rules.shop_positions.well[0] + 50, this.rules.shop_positions.well[1] + 30],
+        button: () => {
+          const b = shopButton("small", price(cost), t.buttons.buy_well ?? "Купить", () => this.buyWell());
+          b.setEnabled(g.gold >= cost);
+          return b;
+        },
+      });
     }
+    const active = buyables.find((b) => b.key === this.buyTarget) ?? buyables[0];
+    this.buyTarget = active?.key ?? null;
+    if (active) add(active.button(), ...active.at);
 
     // «Купить Воду» (433; 32) и «Продать Плоды» (547; 86) — средние кнопки
     // нечего покупать (бочки полны) и нечего продавать (нет плодов и собранных букетов) — кнопок нет
