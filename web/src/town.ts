@@ -61,9 +61,11 @@ export class Town extends Container {
     this.refresh();
   }
 
-  /** Город показали игроку: слуга с заданием — подсказка town_talker (первый раз). */
+  /** Город показали игроку: слуга с заданием — подсказки town_talker_large, затем town_talker (первый раз). */
   entered() {
-    if (this.quests.available("old_servant").length) this.tut.show("town_talker", 0, 0);
+    if (!this.quests.available("old_servant").length) return;
+    const first = this.tut.show("town_talker_large", 0, 0, false, () => this.tut.show("town_talker", 0, 0));
+    if (!first) this.tut.show("town_talker", 0, 0);
   }
 
   /**
@@ -87,8 +89,6 @@ export class Town extends Container {
     }
     this.busy = true;
     const { quest, data } = list[0];
-    // первый разговор: персонаж на переднем плане (town_talker_large)
-    this.tut.show("town_talker_large", 0, 0);
     const talk = new Talk(this.rules.texts.characters, this.rules.texts.buttons.ok || "OK");
     this.overlay.addChild(talk);
     await talk.play(
