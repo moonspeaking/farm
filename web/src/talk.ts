@@ -4,15 +4,13 @@ import type { PopLabel } from "./popfont";
 import type { Answer, DialogNode } from "./quests";
 import { fmt } from "./rules";
 import { COLOR, H, image, pop, tex, textButton, W } from "./ui";
-import { rgb } from "./popfont";
 
 export class Talk extends Container {
   private readonly portrait: Sprite;
-  private readonly talkerName: PopLabel;
   private text: PopLabel;
   private readonly controls = new Container();
 
-  constructor(private readonly names: Record<string, string>, private readonly okText = "OK") {
+  constructor(private readonly okText = "OK") {
     super();
     const shade = new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.35 });
     shade.eventMode = "static";
@@ -22,18 +20,15 @@ export class Talk extends Container {
     // talker: -1; 283 — портрет стоит у левого края поверх свитка
     this.portrait.anchor.set(0, 1);
     this.portrait.position.set(-1, H);
-    this.talkerName = pop("", "BritannicBold14", rgb(110, 60, 20), { scale: 1.1 });
-    this.talkerName.position.set(230, 166);
-    // text: 97; 195, 600×170, Verdana14 чёрным (сдвинуто вправо, чтобы не заходить под портрет)
-    this.text = pop("", "Verdana14", COLOR.black, { wrap: 470 });
-    this.text.position.set(230, 194);
-    this.addChild(shade, roll, this.portrait, this.talkerName, this.text, this.controls);
+    // text: 97; 195, 600×170, Verdana14 чёрным по центру окна; имени говорящего в окне нет — его показывает портрет
+    this.text = pop("", "Verdana14", COLOR.black, { align: "center", wrap: 560 });
+    this.text.position.set(97 + 300, 195);
+    this.addChild(shade, roll, this.portrait, this.text, this.controls);
   }
 
   private show(talker: string, text: string) {
     this.portrait.texture = tex(`talker_${talker}`);
     this.portrait.scale.set(0.95);
-    this.talkerName.text = this.names[talker] ?? "";
     this.text.text = fmt(text);
   }
 
@@ -81,7 +76,7 @@ export class Talk extends Container {
       const list = (node.answers ?? []).filter((a) => active(a));
       list.forEach((a, i) => {
         const b = textButton(fmt(a.text), () => resolve(a));
-        b.position.set(395, 400 - (list.length - 1 - i) * 34);
+        b.position.set(397, 383 - (list.length - 1 - i) * 34);
         this.controls.addChild(b);
       });
     });

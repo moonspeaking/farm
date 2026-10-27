@@ -128,7 +128,7 @@ export class Town extends Container {
     }
     this.busy = true;
     const { quest, data } = list[0];
-    const talk = new Talk(this.rules.texts.characters, this.rules.texts.buttons.ok || "OK");
+    const talk = new Talk(this.rules.texts.buttons.ok || "OK");
     this.overlay.addChild(talk);
     await talk.play(
       data.dialog,
