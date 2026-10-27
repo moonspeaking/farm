@@ -170,7 +170,7 @@ export function dialog(
       y += opts.content.height + 10;
       items.push(opts.content);
     }
-    const height = Math.max(200, y + 80);
+    const height = Math.max(200, y + 92);
     const roll = image("dialog");
     roll.width = width;
     roll.height = height;

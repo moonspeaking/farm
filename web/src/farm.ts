@@ -520,8 +520,23 @@ export class Farm extends Container {
   }
 
   private tapRidge(r: RidgeView) {
-    if (this.mode !== "day" || this.paused) return;
+    if (this.paused) return;
+    if (this.mode === "shop") {
+      // между днями нажатие на пустую грядку — то же, что кнопка «Посадить растение»
+      if (r.plant) return;
+      if (this.cantAffordSeed()) return this.notEnough();
+      void this.chooseSeed(r);
+      return;
+    }
+    if (this.mode !== "day") return;
     this.waterRidge(r, false);
+  }
+
+  /** Денег не хватает ни на одно из доступных растений. */
+  private cantAffordSeed() {
+    const g = this.game;
+    const seeds = g.hasMark("shop_vegetation") ? g.seeds : g.seeds.filter((s) => this.rules.start.vegetations.includes(s));
+    return g.gold < Math.min(...seeds.map((s) => g.buyPrice(this.rules.vegetations[s].price_buy)));
   }
 
   private waterRidge(r: RidgeView, byHelper: boolean, free = false) {
@@ -660,9 +675,7 @@ export class Farm extends Container {
     };
 
     // грядки: «Посадить растение» только на одной (первой пустой) грядке; если денег не хватает ни на одно растение — красная (cant_buy)
-    const seeds = g.hasMark("shop_vegetation") ? g.seeds : g.seeds.filter((s) => this.rules.start.vegetations.includes(s));
-    const cheapest = Math.min(...seeds.map((s) => g.buyPrice(this.rules.vegetations[s].price_buy)));
-    const broke = g.gold < cheapest;
+    const broke = this.cantAffordSeed();
     const empty = this.ridges.filter((r) => !r.plant);
     const target = this.plantTarget && empty.includes(this.plantTarget) ? this.plantTarget : (empty[0] ?? null);
     this.plantTarget = target;
