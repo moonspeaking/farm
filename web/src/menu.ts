@@ -81,10 +81,12 @@ export class Menu extends Container {
       mask.fill(0xffffff);
       c.addChild(image("comics"));
       if (index === COMICS_PANELS.length - 1) {
-        // «лужа» кнопки нарисована в самой картинке; пока кнопка не появилась, закрываем её соседней травой
+        // «лужа» кнопки нарисована в самой картинке; пока кнопка не появилась, закрываем её зеркальной копией травы слева
+        // (зеркало вокруг x = 704, поэтому на стыке рисунок продолжается без шва)
         const base = tex("comics");
-        const patch = new Sprite(new Texture({ source: base.source, frame: new Rectangle(608, 556, 96, 44) }));
-        patch.position.set(704, 556);
+        const patch = new Sprite(new Texture({ source: base.source, frame: new Rectangle(608, 558, 96, 42) }));
+        patch.scale.x = -1;
+        patch.position.set(800, 558);
         c.addChild(patch);
       }
       c.addChild(mask);
