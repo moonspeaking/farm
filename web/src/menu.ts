@@ -11,14 +11,17 @@ export interface MenuEvents {
   highscores(): void;
 }
 
-/** Кадры комикса по белым разделителям картинки (x: 303, 401, 495; y: 265), в порядке рассказа: x, y, ширина, высота. */
-const COMICS_PANELS: [number, number, number, number][] = [
-  [0, 0, 303, 265],
-  [303, 0, 98, 265],
-  [401, 0, 399, 265],
-  [0, 265, 303, 335],
-  [303, 265, 192, 335],
-  [495, 265, 305, 335],
+/**
+ * Кадры комикса в порядке рассказа; каждый — набор прямоугольников (x, y, ширина, высота): врезка с замком заходит на соседний кадр,
+ * а нижняя кромка первого кадра ниже разделителя на 265 (она лежит у 300).
+ */
+const COMICS_PANELS: [number, number, number, number][][] = [
+  [[0, 0, 303, 303]],
+  [[304, 0, 98, 268], [376, 0, 132, 102]],
+  [[402, 102, 398, 166], [508, 0, 292, 102]],
+  [[0, 303, 303, 297]],
+  [[304, 268, 190, 332]],
+  [[494, 268, 306, 332]],
 ];
 /** Пауза между кадрами и длительность появления кадра, с. */
 const COMICS_GAP = 1.6;
@@ -70,7 +73,9 @@ export class Menu extends Container {
     layer.addChild(new Graphics().rect(0, 0, W, H).fill(0x000000));
     const panels = COMICS_PANELS.map((r) => {
       const c = new Container();
-      const mask = new Graphics().rect(...r).fill(0xffffff);
+      const mask = new Graphics();
+      for (const rect of r) mask.rect(...rect);
+      mask.fill(0xffffff);
       c.addChild(image("comics"), mask);
       c.mask = mask;
       c.alpha = 0;
