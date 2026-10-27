@@ -353,10 +353,9 @@ export class Farm extends Container {
       this.wellFilling -= dt;
       if (this.wellFilling <= 0) this.pourPail();
     }
-    if (this.mode !== "day") {
-      this.helper?.animate(dt);
-      return;
-    }
+    // Робин работает только в течение дня, между днями его на ферме нет
+    if (this.helper) this.helper.visible = this.mode === "day";
+    if (this.mode !== "day") return;
     if (this.endPrompt) return;
     for (const r of this.ridges) r.update(dt);
     // disable_bug_wave: отключённые квестом вредители не появляются
@@ -556,6 +555,7 @@ export class Farm extends Container {
     }
     if (!this.game.quests.helper || this.helper) return;
     this.helper = new Helper(this.rules, this.game, [255, 285]);
+    this.helper.visible = this.mode === "day";
     this.objects.addChild(this.helper);
   }
 
@@ -995,6 +995,8 @@ export class Farm extends Container {
       g.changed();
       refresh();
       this.renderStorages();
+      // кнопка «Купить Воду» на ферме исчезает сразу, как только бочки полны
+      this.renderShop();
     };
     const b1 = textButton(t.buttons.buy_water ?? "Купить литр воды", () => buy(1));
     b1.position.set(0, 180);

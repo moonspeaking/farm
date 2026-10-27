@@ -293,9 +293,8 @@ export class Helper extends Actor {
     super(rules.bugs.helper);
     this.position.set(...home);
     this.icon = image("helper_attack_icon");
-    this.icon.anchor.set(0.5, 1);
-    this.icon.scale.set(0.45);
-    this.icon.position.set(this.rules.helper.icon_offset[0] + 13, this.rules.helper.icon_offset[1] - 10);
+    // мысль рисуется в натуральную величину (62 × 78) в точке icon_offset от Робина
+    this.icon.position.set(...this.rules.helper.icon_offset);
     this.icon.visible = false;
     this.addChild(this.icon);
     this.play("stand", 0, 1, true);
@@ -365,12 +364,7 @@ export class Helper extends Actor {
     this.play("stand", 0, 1);
   }
 
-  /** Анимация без логики — Робин между днями. */
-  animate(dt: number) {
-    this.advance(dt);
-  }
-
-  /** Между днями Робин отдыхает у дома. */
+  /** Между днями Робин отдыхает у дома (на экране его нет). */
   rest() {
     this.task = null;
     this.position.set(...this.home);
