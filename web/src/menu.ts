@@ -1,8 +1,8 @@
 // Главное меню (main_menu) и вступительный комикс (first_comics).
-import { Container } from "pixi.js";
+import { Container, Graphics } from "pixi.js";
 import type { Rules } from "./rules";
 import { fmt } from "./rules";
-import { dialog, image, roundButton, textButton, toast } from "./ui";
+import { dialog, H, image, roundButton, textButton, toast, W } from "./ui";
 
 export interface MenuEvents {
   play(fresh: boolean): void;
@@ -10,6 +10,19 @@ export interface MenuEvents {
   options(): void;
   highscores(): void;
 }
+
+/** Кадры комикса по белым разделителям картинки (x: 303, 401, 495; y: 265), в порядке рассказа: x, y, ширина, высота. */
+const COMICS_PANELS: [number, number, number, number][] = [
+  [0, 0, 303, 265],
+  [303, 0, 98, 265],
+  [401, 0, 399, 265],
+  [0, 265, 303, 335],
+  [303, 265, 192, 335],
+  [495, 265, 305, 335],
+];
+/** Пауза между кадрами и длительность появления кадра, с. */
+const COMICS_GAP = 1.6;
+const COMICS_FADE = 0.7;
 
 export class Menu extends Container {
   private readonly overlay = new Container();
@@ -51,10 +64,19 @@ export class Menu extends Container {
     if (ok === "ok") this.comics();
   }
 
-  /** Комикс о письме слуги — перед началом новой игры. */
+  /** Комикс о письме слуги — перед началом новой игры. Кадры появляются по очереди; щелчок показывает следующий (или все оставшиеся сразу). */
   private comics() {
     const layer = new Container();
-    layer.addChild(image("comics"));
+    layer.addChild(new Graphics().rect(0, 0, W, H).fill(0x000000));
+    const panels = COMICS_PANELS.map((r) => {
+      const c = new Container();
+      const mask = new Graphics().rect(...r).fill(0xffffff);
+      c.addChild(image("comics"), mask);
+      c.mask = mask;
+      c.alpha = 0;
+      layer.addChild(c);
+      return c;
+    });
     const ok = roundButton(this.rules.texts.buttons_menu.continue_game || "Продолжить", () => {
       layer.destroy({ children: true });
       this.events.play(true);
@@ -65,7 +87,40 @@ export class Menu extends Container {
     ok.children[0].rotation = Math.PI;
     ok.children[1].y = -36;
     ok.children[1].scale.set(1.15); // подпись в оригинале примерно на 15% крупнее и ниже, у нижнего края кнопки
+    ok.visible = false;
     layer.addChild(ok);
     this.overlay.addChild(layer);
+
+    // показ по очереди: i — сколько кадров уже начали появляться, t — время с начала появления последнего
+    let shown = 0;
+    let t = COMICS_GAP;
+    let last = performance.now();
+    const next = () => {
+      if (shown >= panels.length) return;
+      shown += 1;
+      t = 0;
+    };
+    layer.eventMode = "static";
+    layer.on("pointertap", () => {
+      // щелчок мимо кнопки: если кадр ещё появляется — сразу весь, иначе следующий
+      if (shown > 0 && t < COMICS_FADE) {
+        panels[shown - 1].alpha = 1;
+        t = COMICS_FADE;
+      }
+      if (shown >= panels.length) return;
+      next();
+    });
+    const tick = () => {
+      if (layer.destroyed) return;
+      const now = performance.now();
+      const dt = (now - last) / 1000;
+      last = now;
+      t += dt;
+      if (shown < panels.length && t >= COMICS_GAP) next();
+      for (let i = 0; i < shown; i++) panels[i].alpha = i < shown - 1 ? 1 : Math.min(1, t / COMICS_FADE);
+      if (shown === panels.length && t >= COMICS_FADE) ok.visible = true;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   }
 }
