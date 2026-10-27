@@ -20,6 +20,8 @@ async function main() {
   await app.init({ background: 0x0f1a08, resizeTo: window, antialias: true, autoDensity: true, resolution: devicePixelRatio });
   document.getElementById("game")!.appendChild(app.canvas);
 
+  // профиль лежит в localStorage: просим браузер не вычищать его при нехватке места
+  void navigator.storage?.persist?.().catch(() => undefined);
   installCursors(app, audio.options.cursors);
   const rules = await loadRules();
   await Promise.all([loadImages(rules.images), loadFonts(), loadParticles(), audio.load(rules.audio)]);
