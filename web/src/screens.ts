@@ -3,7 +3,7 @@ import { Container, Graphics, Rectangle } from "pixi.js";
 import { audio } from "./audio";
 import { rgb } from "./popfont";
 import type { Rules } from "./rules";
-import { COLOR, H, image, pop, textButton, W } from "./ui";
+import { COLOR, H, image, pop, roundButton, textButton, W } from "./ui";
 
 function shade(onTap?: () => void) {
   const s = new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.45 });
@@ -231,6 +231,20 @@ export function pauseOverlay(parent: Container, rules: Rules) {
   const text = pop((rules.texts.pause.text ?? "Пауза").replace(/\\n/g, "\n"), "TC4_16_en", COLOR.white, { align: "center", scale: 1.1, lineOffset: 4 });
   text.position.set(W / 2, H / 2 - 28);
   layer.addChild(text);
+  parent.addChild(layer);
+  return layer;
+}
+
+/**
+ * continue_day_screen (Esc): день стоит, поле затемнено, по центру круглая кнопка «Закончить День» (позиция 347; 197, 206 × 198);
+ * щелчок мимо неё возвращает в игру.
+ */
+export function continueDayOverlay(parent: Container, rules: Rules, actions: { resume(): void; endDay(): void }) {
+  const layer = new Container();
+  layer.addChild(shade(actions.resume));
+  const end = roundButton(rules.texts.buttons.cancel_day ?? "Закончить День", actions.endDay, 4);
+  end.position.set(347 + 103, 197 + 99);
+  layer.addChild(end);
   parent.addChild(layer);
   return layer;
 }

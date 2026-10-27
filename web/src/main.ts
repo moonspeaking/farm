@@ -12,7 +12,7 @@ import { Town } from "./town";
 import { Tutorial } from "./tutorial";
 import { WorldMap } from "./worldmap";
 import { loadFonts } from "./popfont";
-import { gameMenu, highscoresScreen, optionsScreen, pauseOverlay, recordScore } from "./screens";
+import { continueDayOverlay, gameMenu, highscoresScreen, optionsScreen, pauseOverlay, recordScore } from "./screens";
 import { H, loadImages, toast, W } from "./ui";
 
 async function main() {
@@ -144,15 +144,26 @@ async function main() {
   show(menu);
   if (import.meta.env.DEV) Object.assign(window, { __game: { app, get farm() { return curFarm(); }, get town() { return curTown(); }, get game() { return game; }, get map() { return worldMap; }, enter: (n: number, scene: "farm" | "town") => game && enter(game, n, scene), menu } });
 
-  // пауза по пробелу: игровые таймеры стоят, пока висит затемнение
+  // пауза: пробел — «Пауза», Esc — continue_day_screen с кнопкой «Закончить День»; игровые таймеры (и Робин) стоят, пока висит затемнение
   let paused: Container | null = null;
+  const resume = () => {
+    paused?.destroy({ children: true });
+    paused = null;
+  };
   window.addEventListener("keydown", (e) => {
-    if (e.code !== "Space" || !curFarm()?.visible) return;
+    if ((e.code !== "Space" && e.code !== "Escape") || !curFarm()?.visible) return;
     e.preventDefault();
-    if (paused) {
-      paused.destroy({ children: true });
-      paused = null;
-    } else paused = pauseOverlay(world, rules);
+    if (paused) return resume();
+    if (e.code === "Space") paused = pauseOverlay(world, rules);
+    else if (curFarm()!.inDay) {
+      paused = continueDayOverlay(world, rules, {
+        resume,
+        endDay: () => {
+          resume();
+          curFarm()?.endDayNow();
+        },
+      });
+    }
   });
   document.addEventListener("visibilitychange", () => document.hidden && curFarm()?.persist());
 

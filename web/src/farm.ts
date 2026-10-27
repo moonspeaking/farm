@@ -48,6 +48,10 @@ const BONUS_TIERS = [
 ];
 /** «Экономный Полив» (exe, HintLayer: сравнение с 3,0): растению осталось жить не больше стольких секунд. */
 const ECONOM_POUR_LEFT = 3;
+/** controls/time из properties: углы стрелки дня (рад.), положение картинки и точка вращения в ней. */
+const CLOCK_ANGLE = [0, 1.57];
+const CLOCK_POS = [20, 2];
+const CLOCK_PIVOT = [85, 7];
 /** Награда опытом = обычная награда действия × множитель (в exe: imul на 2 / 3 / 4, у «Экономного Полива» shl 1). */
 const ECONOM_POUR_MULT = 2;
 
@@ -81,7 +85,6 @@ export class Farm extends Container {
   private readonly startBtn: Container;
   private readonly townBtn: Container;
   /** «Закончить День» — досрочное завершение, на месте кнопки «Начать День». */
-  private readonly endBtn: Container;
   private readonly pointer: Sprite;
   private readonly weatherIcon: Sprite;
   private bouquets: BouquetScreen | null = null;
@@ -130,13 +133,14 @@ export class Farm extends Container {
     const clock = new Container();
     clock.addChild(image("clock_back"));
     this.pointer = image("clock_pointer");
-    this.pointer.anchor.set(0.08, 0.5);
-    this.pointer.position.set(56, 62);
+    // стрелка: rotate_pos 20; 2 и rotate_center 85; 7 из controls/time — вращение вокруг (105; 9) элемента (0x4b02d0)
+    this.pointer.anchor.set(CLOCK_PIVOT[0] / this.pointer.texture.width, CLOCK_PIVOT[1] / this.pointer.texture.height);
+    this.pointer.position.set(CLOCK_POS[0] + CLOCK_PIVOT[0], CLOCK_POS[1] + CLOCK_PIVOT[1]);
+    // значок погоды прижат к правому верхнему углу элемента (0x4b0b70: x = ширина − ширина картинки, y = 0)
     this.weatherIcon = image("weather_normal");
-    this.weatherIcon.anchor.set(0.5);
-    this.weatherIcon.position.set(56, 62);
+    this.weatherIcon.position.set(111 - this.weatherIcon.width, 0);
     clock.addChild(this.pointer, this.weatherIcon, image("clock_fore"));
-    clock.position.set(W - 111, -2);
+    clock.position.set(689, 0);
     this.top.addChild(clock);
     this.startBtn = roundButton(t.buttons.start_new_day ?? "Начать День", () => void this.startDay());
     this.startBtn.position.set(527 + 103, -110 + 99);
@@ -145,10 +149,7 @@ export class Farm extends Container {
       this.events.toTown();
     });
     this.townBtn.position.set(193 + 103, -110 + 99);
-    this.endBtn = roundButton(t.buttons.cancel_day ?? "Закончить День", () => void this.confirmEndDay());
-    this.endBtn.position.copyFrom(this.startBtn.position);
-    this.endBtn.visible = false;
-    this.top.addChild(this.startBtn, this.townBtn, this.endBtn);
+    this.top.addChild(this.startBtn, this.townBtn);
 
     // ---------------- сохранение
     rules.ridges.forEach((p) => this.addRidge(p));
@@ -170,11 +171,11 @@ export class Farm extends Container {
     this.mode = "shop";
     this.startBtn.visible = true;
     this.townBtn.visible = true;
-    this.endBtn.visible = false;
-    this.pointer.rotation = Math.PI;
+    this.pointer.rotation = CLOCK_ANGLE[0];
     for (const r of this.ridges) r.pause();
     this.weatherFx.set("normal");
     this.weatherIcon.texture = tex("weather_normal");
+    this.syncWell();
     this.renderShop();
     this.renderStats();
     this.persist();
@@ -231,14 +232,15 @@ export class Farm extends Container {
     this.lastTick = -1;
     this.startBtn.visible = false;
     this.townBtn.visible = false;
-    this.endBtn.visible = true;
     this.clearShop();
+    this.syncWell();
     this.wellCooldown = 0;
     // погода дня (exe, 0x411bbe): до 5-го дня всегда обычная, дальше rand() % 3 — поровну обычная, солнце, дождь
     const w: Weather = this.game.day < 5 ? "normal" : (["normal", "sun", "rain"] as const)[Math.floor(Math.random() * 3)];
     this.game.weather = w;
     this.weatherFx.set(w);
     this.weatherIcon.texture = tex(w === "normal" ? "weather_normal" : `weather_${w}`);
+    this.weatherIcon.x = 111 - this.weatherIcon.width;
     this.arriver.startDay(this.rules, this.game.day, this.rules.weather[w]?.bug_arrive ?? 1);
     for (const rid of this.ridges) rid.resume();
     audio.play("day_start");
@@ -261,24 +263,17 @@ export class Farm extends Container {
     audio.play("product_appear");
   }
 
-  private async confirmEndDay() {
-    if (this.mode !== "day" || this.paused) return;
-    this.paused = true;
-    const t = this.rules.texts;
-    const answer = await dialog(this.ui, {
-      title: t.buttons.cancel_day ?? "Закончить День",
-      body: "Завершить день досрочно?",
-      buttons: [
-        { text: t.buttons.yes ?? "Да", value: "yes" },
-        { text: t.buttons.no ?? "Нет", value: "no" },
-      ],
-    });
-    this.paused = false;
-    if (answer === "yes" && this.mode === "day") this.dayLeft = 0;
+  /** Идёт игровой день (по Esc показывается continue_day_screen). */
+  get inDay() {
+    return this.mode === "day";
+  }
+
+  /** «Закончить День» из continue_day_screen: день завершается сразу. */
+  endDayNow() {
+    if (this.mode === "day") this.dayLeft = 0;
   }
 
   private async endDay() {
-    this.endBtn.visible = false;
     this.mode = "shop";
     audio.play("day_end");
     // вредители уходят вместе с днём
@@ -309,7 +304,10 @@ export class Farm extends Container {
       this.wellFilling -= dt;
       if (this.wellFilling <= 0) this.pourPail();
     }
-    if (this.mode !== "day") return;
+    if (this.mode !== "day") {
+      this.helper?.animate(dt);
+      return;
+    }
     for (const r of this.ridges) r.update(dt);
     // disable_bug_wave: отключённые квестом вредители не появляются
     for (const name of this.arriver.tick(dt)) if (!this.game.quests.bugsOff?.includes(name)) this.spawnBug(name);
@@ -322,7 +320,7 @@ export class Farm extends Container {
     this.animatePail();
     this.dayLeft -= dt;
     // стрелка часов проходит верхнюю половину циферблата за день
-    this.pointer.rotation = Math.PI + Math.PI * (1 - Math.max(0, this.dayLeft) / this.rules.day_time);
+    this.pointer.rotation = CLOCK_ANGLE[0] - (CLOCK_ANGLE[1] - CLOCK_ANGLE[0]) * (1 - Math.max(0, this.dayLeft) / this.rules.day_time);
     // последние пять секунд тикают часы (звук tick.ogg)
     const left = Math.ceil(this.dayLeft);
     if (left <= 5 && left > 0 && left !== this.lastTick) {
@@ -420,8 +418,10 @@ export class Farm extends Container {
     const grid = new PathGrid();
     for (const o of this.rules.obstacles) grid.add(o);
     const g = this.game;
-    grid.add(this.rules.well);
-    grid.add(this.rules.well.pail);
+    if (g.well) {
+      grid.add(this.rules.well);
+      grid.add(this.rules.well.pail);
+    }
     this.rules.water_storage.slice(0, g.barrels).forEach((l) => grid.add(l));
     this.rules.product_storage.slice(0, g.boxes).forEach((l) => grid.add(l));
     for (const r of this.ridges) grid.add(r.place);
@@ -609,10 +609,19 @@ export class Farm extends Container {
     for (const b of this.barrels) b.level = wk;
     const pk = this.game.storageMax ? this.game.storageCount() / this.game.storageMax : 0;
     for (const b of this.boxes) b.level = pk;
-    // колодец полупрозрачен, пока не куплен
-    this.well.alpha = this.game.well ? 1 : 0.5;
-    this.pail.visible = this.game.well;
+    this.syncWell();
     this.sortObjects();
+  }
+
+  /**
+   * Колодец виден, только когда куплен; между днями (после первого заработка) он показан полупрозрачным с предложением купить,
+   * в течение дня непроданного колодца нет.
+   */
+  private syncWell() {
+    const owned = this.game.well;
+    this.well.visible = owned || (this.mode === "shop" && this.game.hasMark("shop_well"));
+    this.well.alpha = owned ? 1 : 0.5;
+    this.pail.visible = owned;
   }
 
   // ================================================================ магазин на объектах

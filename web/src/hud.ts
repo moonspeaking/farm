@@ -40,8 +40,8 @@ export class Hud extends Container {
     title(st.day_title, 12, 446, 80);
 
     // значения BritannicBold14 цветами из XML: склад и день 60;60;60, вода 60;60;160, деньги 255;255;55
-    const value = (x: number, y: number, color: number, align: "left" | "center" = "left", vcenter = false) => {
-      const l = pop("", "BritannicBold14", color, { align });
+    const value = (x: number, y: number, color: number, align: "left" | "center" = "left", vcenter = false, scale = 1) => {
+      const l = pop("", "BritannicBold14", color, { align, scale });
       if (vcenter) l.anchor.set(align === "center" ? 0.5 : 0, 0.5);
       l.position.set(x, y);
       this.addChild(l);
@@ -51,8 +51,8 @@ export class Hud extends Container {
       storage: value(52, 214, rgb(60, 60, 60), "center"),
       water: value(52, 316, rgb(60, 60, 160), "center"),
       money: value(52, 416, rgb(255, 255, 55), "center"),
-      day: value(53, 501, rgb(60, 60, 60), "center", true), // day_count (15; 486) 30×30: середина — на странице календаря
-      level: value(24, 108, COLOR.white, "center"),
+      day: value(51, 500, rgb(60, 60, 60), "center", true, 1.8), // day_count (15; 486) 30×30: крупная цифра на странице календаря
+      level: value(17, 123, rgb(255, 255, 55), "center", true), // уровень — слева от полоски опыта
     };
 
     // полоска опыта 61×11 в (32; 123); при свободных очках умений мигает

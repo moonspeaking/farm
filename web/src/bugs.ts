@@ -1,5 +1,5 @@
 // Вредители на ферме и помощник Робин. Параметры — из properties_ru.xml (bugs, bug_arriver, common/helper).
-import { AnimatedSprite, Container, Rectangle, Sprite, Texture } from "pixi.js";
+import { AnimatedSprite, Container, Rectangle, Sprite, Texture, type Ticker } from "pixi.js";
 import { audio } from "./audio";
 import { IconRow } from "./effects";
 import { CELL_H, CELL_W, type Cell, type PathGrid, pathToPlant, wanderPath } from "./pathgrid";
@@ -46,9 +46,14 @@ class Actor extends Container {
 
   constructor(protected def: BugDef) {
     super();
-    this.view = new AnimatedSprite({ textures: [Texture.EMPTY], autoUpdate: true });
+    this.view = new AnimatedSprite({ textures: [Texture.EMPTY], autoUpdate: false });
     this.view.anchor.set(0.5, 0.9);
     this.addChild(this.view);
+  }
+
+  /** Кадры идут по игровому времени, а не по таймеру Pixi: на паузе персонаж замирает. */
+  protected advance(dt: number) {
+    this.view.update({ deltaTime: dt * 60 } as unknown as Ticker);
   }
 
   protected play(anim: string, dx = 0, dy = 0, force = false) {
@@ -156,6 +161,7 @@ export class Bug extends Actor {
   }
 
   update(dt: number) {
+    this.advance(dt);
     if (this.dead) {
       this.alpha -= dt * 2;
       if (this.alpha <= 0) this.destroy({ children: true });
@@ -297,6 +303,7 @@ export class Helper extends Actor {
 
   update(dt: number, bugs: Bug[], ridges: RidgeView[], onWater: (r: RidgeView) => void) {
     const h = this.rules.helper;
+    this.advance(dt);
     this.cooldown = Math.max(0, this.cooldown - dt);
     if (!this.task) {
       this.think -= dt;
@@ -356,6 +363,11 @@ export class Helper extends Actor {
     this.showIcon(null);
     if (Math.hypot(this.home[0] - this.x, this.home[1] - this.y) > 6) return this.fly(this.home[0], this.home[1], dt);
     this.play("stand", 0, 1);
+  }
+
+  /** Анимация без логики — Робин между днями. */
+  animate(dt: number) {
+    this.advance(dt);
   }
 
   /** Между днями Робин отдыхает у дома. */

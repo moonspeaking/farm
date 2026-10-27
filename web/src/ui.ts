@@ -91,13 +91,13 @@ export function shopButton(kind: "small" | "medium", top: string, bottom: string
 }
 
 /** Круглая кнопка меню оригинала (buttons/back 206×198), видна нижняя половина у края экрана. */
-export function roundButton(text: string, onTap: () => void) {
+export function roundButton(text: string, onTap: () => void, labelY = 32) {
   const c = new Container();
   const bg = image("round_button");
   bg.anchor.set(0.5);
   const t = pop(text, "TC4_16_en", COLOR.white, { align: "center" });
   t.anchor.set(0.5, 0.5);
-  t.y = 32; // подпись начинается в 120 px от верха картинки (back_offset), то есть на y = 10 экрана
+  t.y = labelY; // подпись начинается в 120 px от верха картинки (back_offset), то есть на y = 10 экрана
   c.addChild(bg, t);
   c.hitArea = { contains: (x: number, y: number) => x * x + y * y < 95 * 95 };
   press(c, 0.96, onTap);
