@@ -34,6 +34,8 @@ export interface StorageLevel extends Place {
   object: string;
   capacity: number;
   price: number;
+  /** На сколько пикселей опускается содержимое при пустой ёмкости (progress_height). */
+  progress_height: number;
   image_offset: [number, number];
 }
 
@@ -79,6 +81,7 @@ export interface Rules {
   bg_image: string;
   box_image: string;
   box_content_image: string;
+  box_mask_image: string;
   town_bg_image: string;
   /** Номер локации, для которой собраны эти правила. */
   location: number;
@@ -156,7 +159,7 @@ export interface Rules {
 export async function loadRules(): Promise<Rules> {
   const res = await fetch("data/rules.json");
   const rules = (await res.json()) as Rules;
-  Object.assign(rules, { bg_image: "bg", box_image: "box", box_content_image: "box_content", town_bg_image: "town_bg", location: 1 });
+  Object.assign(rules, { bg_image: "bg", box_image: "box", box_content_image: "box_content", box_mask_image: "box_mask", town_bg_image: "town_bg", location: 1 });
   return rules;
 }
 
@@ -170,7 +173,7 @@ export function locationRules(base: Rules, n: number): Rules {
   if (!r) {
     r = {
       ...base, ...base.locations[key], location: n,
-      bg_image: `farm_bg_${n}`, box_image: `box_${n}`, box_content_image: `box_content_${n}`, town_bg_image: `town_bg_${n}`,
+      bg_image: `farm_bg_${n}`, box_image: `box_${n}`, box_content_image: `box_content_${n}`, box_mask_image: `box_mask_${n}`, town_bg_image: `town_bg_${n}`,
     };
     overlays.set(key, r);
   }

@@ -1,5 +1,5 @@
 // Ферма первой локации «Фермы Айрис»: подготовка к дню (магазин на объектах) → день → итоги.
-import { Container, Graphics, Sprite } from "pixi.js";
+import { Container, Graphics, Sprite, Texture } from "pixi.js";
 import { audio } from "./audio";
 import { BouquetScreen } from "./bouquets";
 import { PathGrid } from "./pathgrid";
@@ -17,23 +17,54 @@ import { COLOR, dialog, floatPoints, H, image, pop, roundButton, shopButton, typ
 
 type Mode = "shop" | "day";
 
-/** Ёмкость с заполнением снизу (бочка с водой, ящик с плодами). */
+/**
+ * Ёмкость с наполнением (бочка с водой, ящик с плодами), 0x40d110: картинка содержимого сдвигается вниз на
+ * round((1 − доля) · progress_height) пикселей и показывается только там, где альфа маски непрозрачна.
+ */
 class Filled extends Container {
-  private readonly mask_: Graphics;
   private readonly fill: Sprite;
+  private readonly cache = new Map<number, Texture>();
 
-  constructor(base: string, content: string) {
+  constructor(base: string, private readonly content: string, private readonly holeName: string, private readonly depth: number) {
     super();
-    const b = image(base);
-    this.fill = image(content);
-    this.mask_ = new Graphics();
-    this.fill.mask = this.mask_;
-    this.addChild(b, this.fill, this.mask_);
+    this.fill = new Sprite();
+    this.addChild(image(base), this.fill);
+  }
+
+  /** Содержимое, сдвинутое на shift пикселей вниз и обрезанное альфой маски (кадры собираем один раз на сдвиг). */
+  private frame(shift: number) {
+    let t = this.cache.get(shift);
+    if (!t) {
+      const c = tex(this.content);
+      const cv = document.createElement("canvas");
+      cv.width = c.width;
+      cv.height = c.height;
+      const g = cv.getContext("2d")!;
+      g.drawImage(c.source.resource as CanvasImageSource, 0, shift);
+      g.globalCompositeOperation = "destination-in";
+      g.drawImage(tex(this.holeName).source.resource as CanvasImageSource, 0, 0);
+      t = Texture.from(cv);
+      this.cache.set(shift, t);
+    }
+    return t;
   }
 
   set level(k: number) {
-    const h = this.fill.height * Math.max(0, Math.min(1, k));
-    this.mask_.clear().rect(0, this.fill.height - h, this.fill.width, h).fill(0xffffff);
+    const shift = Math.floor((1 - Math.max(0, Math.min(1, k))) * this.depth + 0.5);
+    // при сдвиге на всю глубину exe ничего не копирует — содержимого не видно
+    this.fill.visible = shift < this.depth;
+    if (this.fill.visible) this.fill.texture = this.frame(shift);
+  }
+}
+
+/** Доля общего запаса по ёмкостям (0x443ee0): каждая берёт равную часть, заполняются по порядку. */
+function spread(list: Filled[], total: number) {
+  const share = 1 / list.length;
+  let rest = total;
+  for (const f of list) {
+    f.level = rest <= share ? rest / share : 1;
+    rest -= share;
+    if (rest < 0.0001) rest = 0;
   }
 }
 
@@ -631,10 +662,10 @@ export class Farm extends Container {
   }
 
   private renderStorages() {
-    const place = (list: Filled[], levels: StorageLevel[], owned: number, base: string, content: string, onTap?: () => void) => {
+    const place = (list: Filled[], levels: StorageLevel[], owned: number, base: string, content: string, mask: string, onTap?: () => void) => {
       while (list.length < owned) {
         const lv = levels[list.length];
-        const f = new Filled(base, content);
+        const f = new Filled(base, content, mask, lv.progress_height);
         f.position.set(lv.position[0], lv.position[1]);
         if (onTap) {
           f.eventMode = "static";
@@ -645,13 +676,11 @@ export class Farm extends Container {
         this.objects.addChild(f);
       }
     };
-    place(this.barrels, this.rules.water_storage, this.game.barrels, "barrel", "barrel_water", () => this.tapBarrel());
-    place(this.boxes, this.rules.product_storage, this.game.boxes, this.rules.box_image, this.rules.box_content_image);
-    // вода и плоды распределяются по ёмкостям поровну
-    const wk = this.game.waterMax ? this.game.water / this.game.waterMax : 0;
-    for (const b of this.barrels) b.level = wk;
-    const pk = this.game.storageMax ? this.game.storageCount() / this.game.storageMax : 0;
-    for (const b of this.boxes) b.level = pk;
+    place(this.barrels, this.rules.water_storage, this.game.barrels, "barrel", "barrel_water", "barrel_mask", () => this.tapBarrel());
+    place(this.boxes, this.rules.product_storage, this.game.boxes, this.rules.box_image, this.rules.box_content_image, this.rules.box_mask_image);
+    // запас делится между ёмкостями по порядку (в exe — равными долями)
+    if (this.barrels.length) spread(this.barrels, this.game.waterMax ? this.game.water / this.game.waterMax : 0);
+    if (this.boxes.length) spread(this.boxes, this.game.storageMax ? this.game.storageCount() / this.game.storageMax : 0);
     this.syncWell();
     this.sortObjects();
   }

@@ -1756,6 +1756,7 @@
    ],
    "capacity": 8,
    "price": 0,
+   "progress_height": 15,
    "dimensions": [
     40.0,
     50.0
@@ -1773,6 +1774,7 @@
    ],
    "capacity": 10,
    "price": 75,
+   "progress_height": 15,
    "dimensions": [
     40.0,
     50.0
@@ -1790,6 +1792,7 @@
    ],
    "capacity": 12,
    "price": 250,
+   "progress_height": 15,
    "dimensions": [
     40.0,
     50.0
@@ -1809,6 +1812,7 @@
    ],
    "capacity": 15,
    "price": 0,
+   "progress_height": 12,
    "dimensions": [
     85.0,
     50.0
@@ -1826,6 +1830,7 @@
    ],
    "capacity": 20,
    "price": 100,
+   "progress_height": 12,
    "dimensions": [
     85.0,
     50.0
@@ -1843,6 +1848,7 @@
    ],
    "capacity": 25,
    "price": 300,
+   "progress_height": 12,
    "dimensions": [
     85.0,
     50.0
@@ -6056,6 +6062,7 @@
      ],
      "capacity": 12,
      "price": 0,
+     "progress_height": 15,
      "dimensions": [
       40.0,
       50.0
@@ -6073,6 +6080,7 @@
      ],
      "capacity": 14,
      "price": 1000,
+     "progress_height": 15,
      "dimensions": [
       40.0,
       50.0
@@ -6090,6 +6098,7 @@
      ],
      "capacity": 16,
      "price": 2500,
+     "progress_height": 15,
      "dimensions": [
       40.0,
       50.0
@@ -6109,6 +6118,7 @@
      ],
      "capacity": 25,
      "price": 1500,
+     "progress_height": 12,
      "dimensions": [
       85.0,
       50.0
@@ -6126,6 +6136,7 @@
      ],
      "capacity": 25,
      "price": 2500,
+     "progress_height": 12,
      "dimensions": [
       85.0,
       50.0
@@ -6143,6 +6154,7 @@
      ],
      "capacity": 25,
      "price": 3000,
+     "progress_height": 12,
      "dimensions": [
       85.0,
       50.0
@@ -8178,6 +8190,7 @@
      ],
      "capacity": 10,
      "price": 0,
+     "progress_height": 15,
      "dimensions": [
       40.0,
       50.0
@@ -8195,6 +8208,7 @@
      ],
      "capacity": 10,
      "price": 55,
+     "progress_height": 15,
      "dimensions": [
       40.0,
       50.0
@@ -8212,6 +8226,7 @@
      ],
      "capacity": 10,
      "price": 75,
+     "progress_height": 15,
      "dimensions": [
       40.0,
       50.0
@@ -8231,6 +8246,7 @@
      ],
      "capacity": 20,
      "price": 150,
+     "progress_height": 12,
      "dimensions": [
       85.0,
       50.0
@@ -8248,6 +8264,7 @@
      ],
      "capacity": 20,
      "price": 250,
+     "progress_height": 12,
      "dimensions": [
       85.0,
       50.0
@@ -8265,6 +8282,7 @@
      ],
      "capacity": 20,
      "price": 300,
+     "progress_height": 12,
      "dimensions": [
       85.0,
       50.0
@@ -9902,6 +9920,7 @@
      ],
      "capacity": 10,
      "price": 0,
+     "progress_height": 15,
      "dimensions": [
       40.0,
       50.0
@@ -9919,6 +9938,7 @@
      ],
      "capacity": 10,
      "price": 500,
+     "progress_height": 15,
      "dimensions": [
       40.0,
       50.0
@@ -9936,6 +9956,7 @@
      ],
      "capacity": 10,
      "price": 750,
+     "progress_height": 15,
      "dimensions": [
       40.0,
       50.0
@@ -9955,6 +9976,7 @@
      ],
      "capacity": 20,
      "price": 0,
+     "progress_height": 12,
      "dimensions": [
       85.0,
       50.0
@@ -9972,6 +9994,7 @@
      ],
      "capacity": 20,
      "price": 2500,
+     "progress_height": 12,
      "dimensions": [
       85.0,
       50.0
@@ -9989,6 +10012,7 @@
      ],
      "capacity": 20,
      "price": 3000,
+     "progress_height": 12,
      "dimensions": [
       85.0,
       50.0
@@ -13070,6 +13094,7 @@
  },
  "images": [
   "barrel",
+  "barrel_mask",
   "barrel_water",
   "bell_1",
   "bell_2",
@@ -13085,6 +13110,11 @@
   "box_content_2",
   "box_content_3",
   "box_content_4",
+  "box_mask",
+  "box_mask_1",
+  "box_mask_2",
+  "box_mask_3",
+  "box_mask_4",
   "bq_back",
   "broken_ship",
   "bug_bug_eat_down",

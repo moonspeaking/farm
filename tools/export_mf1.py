@@ -45,6 +45,8 @@ IMAGES = {
     "pail_water": "game/farms/water_storage/farm_1_water_1",
     "box": "game/farms/product_storage/farm_1_storage_1",
     "box_content": "game/farms/product_storage/farm_1_content_1",
+    "barrel_mask": "game/farms/water_storage/barrel_mask_01",
+    "box_mask": "game/farms/product_storage/farm_1_mask_1",
     "drop": "game/progresses/drop",
     "flower": "game/progresses/flower",
     "heart_small": "game/progresses/heart_small",
@@ -348,7 +350,7 @@ def export_location(n, props, xml_dir, items_root, ru, vegetations, products, bu
     def levels(tag):
         return [{"object": lv.attrib["object"], "position": vec(lv.attrib["position"]),
                  "capacity": int(lv.attrib["capacity"]), "price": int(lv.attrib["price"]),
-                 **objects[lv.attrib["object"]]} for lv in farm.find(tag)]
+                 "progress_height": int(lv.attrib["progress_height"]), **objects[lv.attrib["object"]]} for lv in farm.find(tag)]
 
     well = items_root.find("items/wells/well_00").attrib
     waves, arrive = export_waves(props, props.find("bugs"), n)
@@ -440,7 +442,7 @@ def main():
     def levels(tag):
         return [{"object": lv.attrib["object"], "position": vec(lv.attrib["position"]),
                  "capacity": int(lv.attrib["capacity"]), "price": int(lv.attrib["price"]),
-                 **objects[lv.attrib["object"]]} for lv in farm.find(tag)]
+                 "progress_height": int(lv.attrib["progress_height"]), **objects[lv.attrib["object"]]} for lv in farm.find(tag)]
 
     items_text = (xml_dir / "locations" / "items.xml").read_bytes().decode("cp1251")
     items_root = ET.fromstring("<r>" + re.sub(r"^<\?xml[^>]*\?>", "", items_text.strip()) + "</r>")
@@ -562,6 +564,7 @@ def main():
         names[f"town_bg_{n}"] = f"game/towns/location_{n}"
         names[f"box_{n}"] = f"game/farms/product_storage/farm_{n}_storage_1"
         names[f"box_content_{n}"] = f"game/farms/product_storage/farm_{n}_content_1"
+        names[f"box_mask_{n}"] = f"game/farms/product_storage/farm_{n}_mask_1"
     for k in ("global_map_back", "ship", "pirate_ship", "broken_ship"):
         names[k] = f"game/global_map/{k}"
     for n in range(1, 5):
