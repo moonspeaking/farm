@@ -125,10 +125,10 @@ export class Menu extends Container {
       t += dt;
       if (shown < panels.length && t >= COMICS_GAP) next();
       for (let i = 0; i < shown; i++) panels[i].alpha = i < shown - 1 ? 1 : Math.min(1, t / COMICS_FADE);
-      // подпись появляется плавно после последнего кадра
-      if (shown === panels.length && t >= COMICS_FADE) {
-        ok.alpha = Math.min(1, (t - COMICS_FADE) / 0.6);
-        ok.eventMode = "static";
+      // кнопка появляется вместе с последним кадром, сразу в нормальном размере; нажимается, когда кадр проявился
+      if (shown === panels.length) {
+        ok.alpha = Math.min(1, t / COMICS_FADE);
+        if (t >= COMICS_FADE) ok.eventMode = "static";
       }
       requestAnimationFrame(tick);
     };
