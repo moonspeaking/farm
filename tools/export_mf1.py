@@ -532,6 +532,12 @@ def main():
     rules["helper"] = {k: (vec(v) if ";" in v else float(v)) for k, v in props.find("common/helper").attrib.items()}
     rules["weapon_attack"] = float(items_root.find("weapons/simple_sword").attrib["attack"])
     rules["texts"]["bug_names"] = dict(ru.find("bug_names").attrib)
+    # в оригинале подсказка про цветочный магазин оставлена с английскими «sell» / «sell all» — подставляем подписи самих кнопок
+    sb = rules["texts"]["shop_buttons"]
+    tut = rules["texts"]["tutorial"]
+    tut["bouquet_show_sell_button"] = (tut["bouquet_show_sell_button"]
+                                       .replace("кнопку sell all", f"кнопку «{sb['sell_all']}»")
+                                       .replace("кнопку sell", f"кнопку «{sb['sell']}»"))
 
     # ---------------- остальные локации (2–4): ферма, город, квесты; растения/продукты/вредители пополняют общие словари
     rules["shop_positions"] = shop_positions(props, 1)

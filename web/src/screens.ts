@@ -145,6 +145,11 @@ export function optionsScreen(parent: Container, rules: Rules, onClose: () => vo
     audio.setOptions({ ...cur });
   });
 
+  check("Итоги дня", 318, () => cur.dayStats, (v) => {
+    cur.dayStats = v;
+    audio.setOptions({ ...cur });
+  });
+
   const ok = textButton(rules.texts.buttons.ok ?? "OK", () => done(true));
   ok.position.set(115, 375);
   const cancel = textButton(rules.texts.buttons.cancel ?? "Отмена", () => done(false));

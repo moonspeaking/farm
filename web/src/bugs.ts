@@ -365,8 +365,15 @@ export class Helper extends Actor {
       return;
     }
     this.showIcon(null);
-    if (Math.hypot(this.home[0] - this.x, this.home[1] - this.y) > 6) return this.fly(this.home[0], this.home[1], dt);
+    if (Math.hypot(this.home[0] - this.x, this.home[1] - this.y) > 0.5) return this.fly(this.home[0], this.home[1], dt);
     this.play("stand", 0, 1);
+  }
+
+  /** Каждый день Робин начинает с одного и того же места — у дома — и первую секунду там парит. */
+  startDay() {
+    this.rest();
+    this.cooldown = 0;
+    this.think = 1;
   }
 
   /** Между днями Робин отдыхает у дома (на экране его нет). */

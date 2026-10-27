@@ -106,10 +106,12 @@ export interface Options {
   sound: number;
   cursors: boolean;
   warnings: boolean;
+  /** Окно с итогами дня после «Закончить День» (в оригинале его нет). */
+  dayStats: boolean;
 }
 
 export function loadOptions(): Options {
-  const def: Options = { music: 0.5, sound: 0.7, cursors: true, warnings: true };
+  const def: Options = { music: 0.5, sound: 0.7, cursors: true, warnings: true, dayStats: false };
   try {
     return { ...def, ...(JSON.parse(localStorage.getItem(OPTIONS_KEY) ?? "{}") as Partial<Options>) };
   } catch {

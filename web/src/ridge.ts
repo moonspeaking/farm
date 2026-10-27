@@ -91,7 +91,7 @@ export class RidgeView extends Container {
     this.ground.anchor.set(0.5);
     this.ground.position.set(...this.anchorPoint);
     this.ground.eventMode = "static";
-    this.ground.cursor = "buy";
+    this.ground.cursor = "default";
     this.ground.on("pointertap", () => this.events.tap(this));
     this.ground.on("pointerover", () => this.events.hover(this));
     this.addChild(this.ground, this.plantLayer, this.fx, this.drops, this.lives);
@@ -101,12 +101,21 @@ export class RidgeView extends Container {
     this.lives.position.set(this.anchorPoint[0] + p.attack_vegetation.offset[0], this.anchorPoint[1] + p.attack_vegetation.offset[1]);
   }
 
-  /** Курсор над растением: «полив» только в течение дня, между днями растение ничего не поливает. */
-  private plantCursor = "pour";
+  private day = false;
 
-  setPlantCursor(cursor: string) {
-    this.plantCursor = cursor;
-    if (this.plant) this.plant.view.cursor = cursor;
+  /**
+   * Курсоры зависят от режима: в течение дня над растением и его грядкой — бочка («полив»), над пустой грядкой обычный;
+   * между днями пустая грядка — монетки («купить»), растение — обычный.
+   */
+  setDay(day: boolean) {
+    this.day = day;
+    this.updateCursors();
+  }
+
+  private updateCursors() {
+    const planted = !!this.plant;
+    this.ground.cursor = this.day ? (planted ? "pour" : "default") : planted ? "default" : "buy";
+    if (this.plant) this.plant.view.cursor = this.day ? "pour" : "default";
   }
 
   /** Запас жизни: life из XML и умение «фермерство» (vegetation_life). */
@@ -123,7 +132,6 @@ export class RidgeView extends Container {
     // image_offset из XML — сдвиг картинки растения от точки опоры
     view.position.set(this.anchorPoint[0] + def.image_offset[0], this.anchorPoint[1] + def.image_offset[1]);
     view.eventMode = "static";
-    view.cursor = this.plantCursor;
     view.on("pointertap", () => this.events.tap(this));
     view.on("pointerover", () => this.events.hover(this));
     this.plantLayer.addChild(view);
@@ -144,6 +152,7 @@ export class RidgeView extends Container {
       ripeFor: def.nodes.map(() => Infinity), // плоды из сохранения считаются давно созревшими
     };
     this.plant.products.forEach((p, i) => p && this.showProduct(i, p));
+    this.updateCursors();
     this.updateRows();
   }
 
@@ -172,10 +181,12 @@ export class RidgeView extends Container {
   }
 
   clearPlant() {
+    this.eatenFor = 0;
     if (!this.plant) return;
     for (const s of this.plant.views) s?.destroy();
     this.plant.view.destroy();
     this.plant = null;
+    this.updateCursors();
     this.drops.set(0);
     this.lives.set(0);
   }
@@ -222,11 +233,15 @@ export class RidgeView extends Container {
     return [this.x + this.anchorPoint[0], this.y + this.anchorPoint[1]];
   }
 
+  /** Сколько ещё показывать здоровье: цветочки видны, пока вредитель ест растение, и пропадают, когда он перестал. */
+  private eatenFor = 0;
+
   /** Укус вредителя: attack из XML снимает жизнь растения. true — растение съедено. */
   bite(n: number): boolean {
     const p = this.plant;
     if (!p) return false;
     p.damage += n;
+    this.eatenFor = 0.3;
     if (p.damage >= this.maxLife) return this.die("eaten");
     this.updateRows();
     return false;
@@ -312,6 +327,7 @@ export class RidgeView extends Container {
     const p = this.plant;
     if (!p) return;
     p.products.forEach((s, i) => s && (p.ripeFor[i] += dt));
+    this.eatenFor = Math.max(0, this.eatenFor - dt);
     // таймер жизни без воды идёт всегда; плоды растут независимо от жажды (0x44e520)
     const wasThirsty = this.thirsty;
     p.thirstIn -= dt;
@@ -342,7 +358,7 @@ export class RidgeView extends Container {
     if (this.thirsty) this.drops.setValue(p.thirstIn, p.thirstTotal / 10);
     else this.drops.set(0);
     p.dry.alpha = Math.max(0, Math.min(1, 3 * (0.25 - p.thirstIn / p.thirstTotal)));
-    this.lives.set(p.damage > 0 ? Math.max(1, Math.ceil((3 * (max - p.damage)) / max)) : 0);
+    this.lives.set(this.eatenFor > 0 && p.damage > 0 ? Math.max(1, Math.ceil((3 * (max - p.damage)) / max)) : 0);
   }
 
   /** Перерыв между днями: капли и таймеры стоят. */

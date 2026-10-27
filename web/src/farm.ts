@@ -286,8 +286,10 @@ export class Farm extends Container {
     this.arriver.startDay(this.rules, this.game.day, this.rules.weather[w]?.bug_arrive ?? 1);
     for (const rid of this.ridges) {
       rid.resetThirst();
+      rid.setDay(true);
       rid.resume();
     }
+    this.helper?.startDay();
     audio.play("day_start");
     this.renderStats();
   }
@@ -335,14 +337,17 @@ export class Farm extends Container {
     this.game.day += 1;
     this.events.dayEnded();
     this.game.changed();
-    this.paused = true;
-    await dialog(this.ui, {
-      offsetX: 30,
-      title: `${this.rules.texts.stats.day_title} ${day}`,
-      body: `Собрано плодов: ${this.harvestedToday}\nОпыта получено: ${this.expToday}\nНа складе: ${this.game.storageCount()} / ${this.game.storageMax}`,
-      buttons: [{ text: this.rules.texts.buttons.ok ?? "OK", value: "ok" }],
-    });
-    this.paused = false;
+    // итоги дня — только если включены в опциях (в оригинале после «Закончить День» сразу начинается подготовка)
+    if (audio.options.dayStats) {
+      this.paused = true;
+      await dialog(this.ui, {
+        offsetX: 30,
+        title: `${this.rules.texts.stats.day_title} ${day}`,
+        body: `Собрано плодов: ${this.harvestedToday}\nОпыта получено: ${this.expToday}\nНа складе: ${this.game.storageCount()} / ${this.game.storageMax}`,
+        buttons: [{ text: this.rules.texts.buttons.ok ?? "OK", value: "ok" }],
+      });
+      this.paused = false;
+    }
     this.enterShop();
   }
 
@@ -716,7 +721,7 @@ export class Farm extends Container {
 
   private renderShop() {
     this.clearShop();
-    for (const r of this.ridges) r.setPlantCursor(this.mode === "day" ? "pour" : "default");
+    for (const r of this.ridges) r.setDay(this.mode === "day");
     if (this.mode !== "shop" || this.bouquets) return;
     const t = this.rules.texts;
     const g = this.game;
