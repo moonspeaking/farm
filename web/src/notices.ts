@@ -58,7 +58,7 @@ export function splash(parent: Container, x: number, y: number) {
   requestAnimationFrame(tick);
 }
 
-/** Погода дня: дождь рисуется падающими штрихами, солнце — тёплым оттенком. */
+/** Погода дня: дождь рисуется падающими штрихами. Оттенка на весь экран у оригинала нет — цвета фона остаются как в файле. */
 export class WeatherFx extends Container {
   private weather: Weather = "normal";
   private readonly streaks: { x: number; y: number; v: number }[] = [];
@@ -75,8 +75,6 @@ export class WeatherFx extends Container {
   set(w: Weather) {
     this.weather = w;
     this.layer.clear();
-    if (w === "sun") this.layer.rect(0, 0, W, H).fill({ color: 0xffe9a0, alpha: 0.12 });
-    if (w === "rain") this.layer.rect(0, 0, W, H).fill({ color: 0x1c2a44, alpha: 0.18 });
     this.g.clear();
   }
 
