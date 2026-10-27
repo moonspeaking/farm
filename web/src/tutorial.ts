@@ -8,6 +8,8 @@ import { COLOR, H, image, pop, textButton, W } from "./ui";
 export class Tutorial extends Container {
   private life = 0;
   private after: (() => void) | null = null;
+  /** Снимает слушатель нажатия вне подсказки (для подсказок без затемнения). */
+  private offClick: (() => void) | null = null;
 
   constructor(private readonly rules: Rules, private readonly game: Game, private readonly enabled: () => boolean) {
     super();
@@ -41,11 +43,8 @@ export class Tutorial extends Container {
       fade.addChild(new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: step.alpha }));
       if (!drawn) fade.addChild(pic);
       fade.cacheAsTexture(true);
-      fade.eventMode = "static";
-      fade.on("pointertap", (e) => {
-        e.stopPropagation();
-        this.hide();
-      });
+      // затемнение не перехватывает нажатия: нажатие на подсвеченную цель выполняет действие и убирает подсказку
+      fade.eventMode = "none";
       box.addChild(fade);
       if (drawn) box.addChild(pic);
     }
@@ -87,6 +86,13 @@ export class Tutorial extends Container {
     box.addChild(bubble);
     this.addChild(box);
     this.life = 12;
+    // подсказка исчезает, как только игрок нажал или сделал действие (следующее нажатие)
+    const onDown = () => this.hide();
+    const timer = window.setTimeout(() => {
+      window.addEventListener("pointerdown", onDown);
+      this.offClick = () => window.removeEventListener("pointerdown", onDown);
+    }, 0);
+    this.offClick = () => window.clearTimeout(timer);
     return true;
   }
 
@@ -97,6 +103,8 @@ export class Tutorial extends Container {
   }
 
   hide() {
+    this.offClick?.();
+    this.offClick = null;
     this.removeChildren().forEach((c) => c.destroy({ children: true }));
     this.life = 0;
     const next = this.after;
