@@ -289,6 +289,11 @@ export class Helper extends Actor {
   private think = 0;
   private readonly icon: Sprite;
 
+  /** Робин летает над растениями и вредителями — рисуется поверх всего на ферме. */
+  get depth() {
+    return 1e6;
+  }
+
   constructor(private readonly rules: Rules, private readonly game: Game, private readonly home: [number, number]) {
     super(rules.bugs.helper);
     this.position.set(...home);

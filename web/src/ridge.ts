@@ -1,14 +1,40 @@
 // Грядка и растение на ней. Числа — из правил оригинала; допущения помечены.
-import { Container, Sprite } from "pixi.js";
+import { Container, Sprite, Texture } from "pixi.js";
 import { IconRow } from "./effects";
 import { Place, Rules, Vegetation } from "./rules";
 import type { Game, PlantSave } from "./state";
-import { image } from "./ui";
+import { image, tex } from "./ui";
+
+const silhouettes = new Map<string, Texture>();
+
+/**
+ * Красный силуэт растения (0x44cbb0): у каждого пикселя остаётся альфа, цвет — 0xff0000. Он ложится поверх растения
+ * с прозрачностью, растущей по мере того, как кончается вода, и трава «желтеет и сохнет».
+ */
+function silhouette(name: string) {
+  let t = silhouettes.get(name);
+  if (!t) {
+    const src = tex(name);
+    const cv = document.createElement("canvas");
+    cv.width = src.width;
+    cv.height = src.height;
+    const g = cv.getContext("2d")!;
+    g.drawImage(src.source.resource as CanvasImageSource, 0, 0);
+    g.globalCompositeOperation = "source-in";
+    g.fillStyle = "#ff0000";
+    g.fillRect(0, 0, cv.width, cv.height);
+    t = Texture.from(cv);
+    silhouettes.set(name, t);
+  }
+  return t;
+}
 
 
 interface Plant extends PlantSave {
   def: Vegetation;
   view: Sprite;
+  /** Красный силуэт поверх растения (засыхание). */
+  dry: Sprite;
   views: (Sprite | null)[];
   /** Сколько секунд плод в узле уже созрел (для бонуса «Быстрый Сбор»). */
   ripeFor: number[];
@@ -40,7 +66,7 @@ export class RidgeView extends Container {
   readonly ground: Sprite;
   private readonly plantLayer = new Container();
   private readonly fx = new Container();
-  private readonly drops = new IconRow("drop", 10, 0, 0.85);
+  private readonly drops = new IconRow("drop", 10);
   private readonly lives = new IconRow("flower", 3, 0, 1);
   /** Точка опоры растения — центр лунки (в её координатах). */
   readonly anchorPoint: [number, number];
@@ -101,10 +127,14 @@ export class RidgeView extends Container {
     view.on("pointertap", () => this.events.tap(this));
     view.on("pointerover", () => this.events.hover(this));
     this.plantLayer.addChild(view);
+    const dry = new Sprite(silhouette(name));
+    dry.eventMode = "none";
+    dry.alpha = 0;
+    view.addChild(dry);
     const thirstTotal = this.nextThirst(def);
     const produceTotal = this.nextProduce(def, name);
     this.plant = {
-      name, def, view, thirstLost: 0, damage: 0,
+      name, def, view, dry, thirstLost: 0, damage: 0,
       thirstIn: thirstTotal, thirstTotal,
       produceIn: produceTotal, produceTotal,
       harvested: 0,
@@ -292,13 +322,18 @@ export class RidgeView extends Container {
     this.updateRows();
   }
 
-  /** Капли: чем дольше растение стоит без воды, тем их больше (до 10 — гибель). Цветочки — остаток жизни при укусах. */
+  /**
+   * Капли — остаток времени жизни без воды (0x425860): одна капля = T0/10 секунд, их становится меньше, а последняя уменьшается;
+   * показаны, пока растение хочет пить. Растение краснеет с альфой 3·(0,25 − T/T0) (0x44ea20): с последней четверти времени.
+   * Цветочки — остаток жизни при укусах.
+   */
   private updateRows() {
     const p = this.plant;
     if (!p) return;
     const max = this.maxLife;
-    const half = p.thirstTotal / 2;
-    this.drops.set(this.thirsty ? Math.max(1, Math.ceil((10 * (half - p.thirstIn)) / half)) : 0);
+    if (this.thirsty) this.drops.setValue(p.thirstIn, p.thirstTotal / 10);
+    else this.drops.set(0);
+    p.dry.alpha = Math.max(0, Math.min(1, 3 * (0.25 - p.thirstIn / p.thirstTotal)));
     this.lives.set(p.damage > 0 ? Math.max(1, Math.ceil((3 * (max - p.damage)) / max)) : 0);
   }
 
