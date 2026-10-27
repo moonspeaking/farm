@@ -77,6 +77,8 @@ export function shopButton(kind: "small" | "medium", top: string, bottom: string
   } else {
     const t = pop(top, "palatino_14", COLOR.shop, { align: "center", lineOffset: -4 });
     t.anchor.set(0.5, 0.5);
+    // длинные названия («Денежное дерево») сжимаются, чтобы не выходить за дощечку (100 × 60)
+    if (t.textWidth > 88) t.scale.set(88 / t.textWidth);
     texts.push(t);
   }
   c.addChild(...texts);

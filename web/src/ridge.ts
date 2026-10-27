@@ -45,6 +45,11 @@ export class RidgeView extends Container {
   /** Точка опоры растения — центр лунки (в её координатах). */
   readonly anchorPoint: [number, number];
 
+  /** Глубина для сортировки на ферме — нижний край грядки: вредитель, стоящий ниже, рисуется поверх и принимает удары. */
+  get depth() {
+    return this.y + this.place.dimensions[1];
+  }
+
   constructor(
     readonly place: Place,
     private readonly rules: Rules,
