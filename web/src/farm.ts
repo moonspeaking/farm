@@ -333,6 +333,8 @@ export class Farm extends Container {
     for (const b of this.bugs) b.destroy({ children: true });
     this.bugs = [];
     this.helper?.rest();
+    // день кончился — у растений жажда сбрасывается, засохшие на вид возвращаются к норме
+    for (const r of this.ridges) r.resetThirst();
     const day = this.game.day;
     this.game.day += 1;
     this.events.dayEnded();
