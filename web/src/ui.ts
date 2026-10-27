@@ -85,7 +85,7 @@ export function shopButton(kind: "small" | "medium", top: string, bottom: string
     t.anchor.set(0.5, 0.5);
     // длинные названия («Денежное дерево») — дощечка шире, по центру
     if (bg instanceof NineSliceSprite && t.textWidth > 80) {
-      bg.width = t.textWidth + 24;
+      bg.width = t.textWidth + 44;
       bg.x = -bg.width / 2;
     }
     texts.push(t);
@@ -150,6 +150,8 @@ export function dialog(
     content?: Container;
     buttons: DialogButton[];
     width?: number;
+    /** Сдвиг по горизонтали от центра экрана (на ферме окно по центру поля правее панели). */
+    offsetX?: number;
     /** Получает функцию закрытия окна — для кнопок внутри content. */
     bind?: (close: (value: string) => void) => void;
   },
@@ -199,7 +201,7 @@ export function dialog(
       btn.position.set((i - (opts.buttons.length - 1) / 2) * step, height - 70);
       box.addChild(btn);
     });
-    box.position.set(W / 2, Math.max(10, (H - height) / 2));
+    box.position.set(W / 2 + (opts.offsetX ?? 0), Math.max(10, (H - height) / 2));
     shade.on("pointertap", () => finish("cancel"));
     layer.addChild(box);
     parent.addChild(layer);

@@ -226,6 +226,7 @@ export class Farm extends Container {
     else if (free < plants) warning = t.warnings.low_storage_capacity;
     if (warning && audio.options.warnings) {
       const r = await dialog(this.ui, {
+      offsetX: 30,
         body: fmt(warning),
         buttons: [{ text: t.buttons.yes ?? "Да", value: "ok" }, { text: t.buttons.no ?? "Нет", value: "no" }],
       });
@@ -299,6 +300,7 @@ export class Farm extends Container {
     this.game.changed();
     this.paused = true;
     await dialog(this.ui, {
+      offsetX: 30,
       title: `${this.rules.texts.stats.day_title} ${day}`,
       body: `Собрано плодов: ${this.harvestedToday}\nОпыта получено: ${this.expToday}\nНа складе: ${this.game.storageCount()} / ${this.game.storageMax}`,
       buttons: [{ text: this.rules.texts.buttons.ok ?? "OK", value: "ok" }],
@@ -836,6 +838,7 @@ export class Farm extends Container {
       content.addChild(card);
     });
     const chosen = await dialog(this.ui, {
+      offsetX: 30,
       title: fmt(t.shop.buy_vegetation ?? "Купить растение"),
       content,
       buttons: [{ text: t.buttons.cancel ?? "Отмена", value: "cancel" }],
@@ -855,6 +858,7 @@ export class Farm extends Container {
     const name = t.names[p.name] ?? p.name;
     const cost = this.game.sellPrice(p.def.price_sell);
     const res = await dialog(this.ui, {
+      offsetX: 30,
       body: fmt(t.desc.apply_sell_vegetation, { vegetation_name: name }) + `\n${fmt(t.shop.sell_item_price, { price: cost })}`,
       buttons: [{ text: t.buttons.yes ?? "Да", value: "ok" }, { text: t.buttons.no ?? "Нет", value: "no" }],
     });
@@ -870,6 +874,7 @@ export class Farm extends Container {
     const price = this.game.buyPrice(this.rules.prices.ridge);
     if (this.game.gold < price) return this.notEnough();
     const res = await dialog(this.ui, {
+      offsetX: 30,
       body: `${fmt(t.desc.apply_buy_ridge)}\n${fmt(t.shop.buy_item_price, { price })}`,
       buttons: [{ text: t.buttons.yes ?? "Да", value: "ok" }, { text: t.buttons.no ?? "Нет", value: "no" }],
     });
