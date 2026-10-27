@@ -185,7 +185,7 @@ export function dialog(
     const step = Math.min(180, (width - 80) / opts.buttons.length);
     opts.buttons.forEach((b, i) => {
       const btn = textButton(b.text, () => finish(b.value));
-      btn.position.set((i - (opts.buttons.length - 1) / 2) * step, height - 48);
+      btn.position.set((i - (opts.buttons.length - 1) / 2) * step, height - 70);
       box.addChild(btn);
     });
     box.position.set(W / 2, Math.max(10, (H - height) / 2));
