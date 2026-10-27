@@ -12,7 +12,7 @@ import { Town } from "./town";
 import { Tutorial } from "./tutorial";
 import { WorldMap } from "./worldmap";
 import { loadFonts } from "./popfont";
-import { continueDayOverlay, gameMenu, highscoresScreen, optionsScreen, pauseOverlay, recordScore } from "./screens";
+import { gameMenu, highscoresScreen, optionsScreen, pauseOverlay, recordScore } from "./screens";
 import { H, loadImages, toast, W } from "./ui";
 
 async function main() {
@@ -68,15 +68,7 @@ async function main() {
         show(towns[n]);
         towns[n].entered();
       },
-      toMenu: () =>
-        gameMenu(world, rules, {
-          options: () => optionsScreen(world, rules, () => undefined),
-          exit: () => {
-            f.persist();
-            audio.playMusic("menu");
-            show(menu);
-          },
-        }),
+      toMenu: () => openMenu(f),
       dayEnded: () => recordScore(rules, "Айрис", g.day, g.gold, false),
     });
     const quests = new QuestEngine(lr.quests, g, {
@@ -148,26 +140,40 @@ async function main() {
   show(menu);
   if (import.meta.env.DEV) Object.assign(window, { __game: { app, get farm() { return curFarm(); }, get town() { return curTown(); }, get game() { return game; }, get map() { return worldMap; }, enter: (n: number, scene: "farm" | "town") => game && enter(game, n, scene), menu } });
 
-  // пауза: пробел — «Пауза», Esc — continue_day_screen с кнопкой «Закончить День»; игровые таймеры (и Робин) стоят, пока висит затемнение
+  // пауза: пробел — «Пауза», Esc и кнопка «Меню» — меню игры; пока висит любое из них, игровые таймеры (и Робин) стоят
   let paused: Container | null = null;
+  let closeMenu: (() => void) | null = null;
   const resume = () => {
     paused?.destroy({ children: true });
     paused = null;
   };
+  function openMenu(f: Farm) {
+    if (closeMenu || paused) return;
+    const done = () => (closeMenu = null);
+    closeMenu = gameMenu(world, rules, {
+      options: () => optionsScreen(world, rules, done),
+      exit: () => {
+        done();
+        f.persist();
+        audio.playMusic("menu");
+        show(menu);
+      },
+      closed: done,
+    });
+  }
   window.addEventListener("keydown", (e) => {
-    if ((e.code !== "Space" && e.code !== "Escape") || !curFarm()?.visible) return;
+    if (e.code !== "Space" && e.code !== "Escape") return;
+    const farm = curFarm();
+    if (!farm || !(farm.visible || curTown()?.visible)) return;
     e.preventDefault();
-    if (paused) return resume();
-    if (e.code === "Space") paused = pauseOverlay(world, rules);
-    else if (curFarm()!.inDay) {
-      paused = continueDayOverlay(world, rules, {
-        resume,
-        endDay: () => {
-          resume();
-          curFarm()?.endDayNow();
-        },
-      });
+    if (e.code === "Escape") {
+      if (closeMenu) closeMenu();
+      else if (!paused) openMenu(farm);
+      return;
     }
+    if (!farm.visible || closeMenu) return;
+    if (paused) resume();
+    else paused = pauseOverlay(world, rules);
   });
   document.addEventListener("visibilitychange", () => document.hidden && curFarm()?.persist());
 
@@ -176,7 +182,7 @@ async function main() {
   app.ticker.add((t) => {
     const dt = Math.min(t.deltaMS, 100) / 1000;
     worldTut?.update(dt);
-    if (!paused) {
+    if (!paused && !closeMenu) {
       curFarm()?.update(dt * speed);
       if (curTown()?.visible) curTown()!.update(dt);
     }

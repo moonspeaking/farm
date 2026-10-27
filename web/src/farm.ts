@@ -3,6 +3,7 @@ import { Container, Graphics, Sprite } from "pixi.js";
 import { audio } from "./audio";
 import { BouquetScreen } from "./bouquets";
 import { PathGrid } from "./pathgrid";
+import { continueDayOverlay } from "./screens";
 import { Bug, BugArriver, Helper } from "./bugs";
 import { Hud } from "./hud";
 import { LevelUp } from "./levelup";
@@ -97,6 +98,7 @@ export class Farm extends Container {
   private helper: Helper | null = null;
   /** Колодец: секунды до готовности следующего ведра. */
   private wellCooldown = 0;
+  private endPrompt: Container | null = null;
   private wellFilling = 0;
   private pailBase: [number, number] = [0, 0];
 
@@ -263,14 +265,20 @@ export class Farm extends Container {
     audio.play("product_appear");
   }
 
-  /** Идёт игровой день (по Esc показывается continue_day_screen). */
-  get inDay() {
-    return this.mode === "day";
-  }
-
-  /** «Закончить День» из continue_day_screen: день завершается сразу. */
-  endDayNow() {
-    if (this.mode === "day") this.dayLeft = 0;
+  /**
+   * Время дня вышло: игра стоит, поле затемнено, по центру круглая кнопка «Закончить День» (continue_day_screen, 347; 197);
+   * день заканчивается по нажатию.
+   */
+  private promptEndDay() {
+    if (this.endPrompt) return;
+    this.endPrompt = continueDayOverlay(this.ui, this.rules, {
+      resume: () => undefined,
+      endDay: () => {
+        this.endPrompt?.destroy({ children: true });
+        this.endPrompt = null;
+        void this.endDay();
+      },
+    });
   }
 
   private async endDay() {
@@ -308,6 +316,7 @@ export class Farm extends Container {
       this.helper?.animate(dt);
       return;
     }
+    if (this.endPrompt) return;
     for (const r of this.ridges) r.update(dt);
     // disable_bug_wave: отключённые квестом вредители не появляются
     for (const name of this.arriver.tick(dt)) if (!this.game.quests.bugsOff?.includes(name)) this.spawnBug(name);
@@ -327,7 +336,7 @@ export class Farm extends Container {
       this.lastTick = left;
       audio.play("tick");
     }
-    if (this.dayLeft <= 0) void this.endDay();
+    if (this.dayLeft <= 0) this.promptEndDay();
   }
 
   // ================================================================ опыт и особые умения

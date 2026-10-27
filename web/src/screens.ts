@@ -13,10 +13,21 @@ function shade(onTap?: () => void) {
 }
 
 /** Меню игры: «Вернуться», «Опции», «Выйти» на картинке game_menu (225×304). */
-export function gameMenu(parent: Container, rules: Rules, actions: { options(): void; exit(): void }) {
+export function gameMenu(parent: Container, rules: Rules, actions: { options(): void; exit(): void; closed(): void }) {
   const layer = new Container();
   const t = rules.texts.game_menu;
-  const close = () => layer.destroy({ children: true });
+  let alive = true;
+  const dispose = () => {
+    if (!alive) return;
+    alive = false;
+    layer.destroy({ children: true });
+  };
+  /** «Вернуться», щелчок мимо меню или Esc: меню закрыто, игра продолжается. */
+  const close = () => {
+    if (!alive) return;
+    dispose();
+    actions.closed();
+  };
   layer.addChild(shade(close));
   const box = new Container();
   box.position.set((W - 225) / 2 + 40, (H - 304) / 2);
@@ -29,15 +40,16 @@ export function gameMenu(parent: Container, rules: Rules, actions: { options(): 
   };
   item(t.game_menu_back ?? "Вернуться", 38, 34, 148, close);
   item(t.game_menu_options ?? "Опции", 69, 105, 83, () => {
-    close();
+    dispose();
     actions.options();
   });
   item(t.game_menu_exit ?? "Выйти", 62, 206, 93, () => {
-    close();
+    dispose();
     actions.exit();
   });
   layer.addChild(box);
   parent.addChild(layer);
+  return close;
 }
 
 /** Окно опций 346×450: громкость музыки и звуков, полный экран, особые курсоры, предупреждения. */
