@@ -1,5 +1,5 @@
 // Интерфейс на графике и шрифтах «Фермы Айрис» (картинки — public/img, шрифты — public/fonts).
-import { Assets, Container, Graphics, Sprite, Texture } from "pixi.js";
+import { Assets, Container, Graphics, NineSliceSprite, Sprite, Texture } from "pixi.js";
 import { FontName, PopLabel, PopOptions, rgb } from "./popfont";
 
 export const W = 800;
@@ -59,8 +59,14 @@ export interface ShopButton extends Container {
  */
 export function shopButton(kind: "small" | "medium", top: string, bottom: string | null, onTap: () => void): ShopButton {
   const c = new Container() as ShopButton;
-  const bg = image(`shop_${kind}`);
-  bg.anchor.set(0.5);
+  // средняя дощечка растягивается по ширине под длинное название, рамка не искажается (девятизонная нарезка)
+  const bg: Sprite | NineSliceSprite =
+    kind === "medium" ? new NineSliceSprite({ texture: tex("shop_medium"), leftWidth: 10, rightWidth: 10, topHeight: 10, bottomHeight: 10 }) : image("shop_small");
+  if (bg instanceof Sprite) bg.anchor.set(0.5);
+  else {
+    bg.x = -bg.width / 2;
+    bg.y = -bg.height / 2;
+  }
   c.addChild(bg);
   const texts: PopLabel[] = [];
   if (kind === "small") {
@@ -77,8 +83,11 @@ export function shopButton(kind: "small" | "medium", top: string, bottom: string
   } else {
     const t = pop(top, "palatino_14", COLOR.shop, { align: "center", lineOffset: -4 });
     t.anchor.set(0.5, 0.5);
-    // длинные названия («Денежное дерево») сжимаются, чтобы не выходить за дощечку (100 × 60)
-    if (t.textWidth > 88) t.scale.set(88 / t.textWidth);
+    // длинные названия («Денежное дерево») — дощечка шире, по центру
+    if (bg instanceof NineSliceSprite && t.textWidth > 80) {
+      bg.width = t.textWidth + 24;
+      bg.x = -bg.width / 2;
+    }
     texts.push(t);
   }
   c.addChild(...texts);
