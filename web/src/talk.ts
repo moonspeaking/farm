@@ -76,19 +76,14 @@ export class Talk extends Container {
     return new Promise((resolve) => {
       this.clearControls();
       this.show(node.talker, node.text);
-      let y = 194 + this.text.textHeight + 14;
-      for (const a of node.answers ?? []) {
-        if (!active(a)) continue;
-        const t = pop(`• ${fmt(a.text)}`, "Verdana14", rgb(40, 70, 150), { wrap: 450 });
-        t.position.set(244, y);
-        t.eventMode = "static";
-        t.cursor = "pointer";
-        t.on("pointerover", () => t.setColor(rgb(160, 50, 20)));
-        t.on("pointerout", () => t.setColor(rgb(40, 70, 150)));
-        t.on("pointertap", () => resolve(a));
-        this.controls.addChild(t);
-        y += t.textHeight + 6;
-      }
+      // ответы — кнопки стиля normal на нижней линии окна (quest_dialog: buttons_down_line 390; 400), по центру правее портрета;
+      // если ответов несколько, они идут друг над другом, последний — на линии
+      const list = (node.answers ?? []).filter((a) => active(a));
+      list.forEach((a, i) => {
+        const b = textButton(fmt(a.text), () => resolve(a));
+        b.position.set(395, 400 - (list.length - 1 - i) * 34);
+        this.controls.addChild(b);
+      });
     });
   }
 
