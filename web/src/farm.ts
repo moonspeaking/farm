@@ -99,6 +99,8 @@ export class Farm extends Container {
   /** Колодец: секунды до готовности следующего ведра. */
   private wellCooldown = 0;
   private endPrompt: Container | null = null;
+  /** Пустая грядка, на которой сейчас показана кнопка «Посадить растение». */
+  private plantTarget: RidgeView | null = null;
   private wellFilling = 0;
   private pailBase: [number, number] = [0, 0];
 
@@ -378,6 +380,12 @@ export class Farm extends Container {
   private addRidge(place: Place) {
     const r = new RidgeView(place, this.rules, this.game, {
       tap: (ridge) => this.tapRidge(ridge),
+      hover: (ridge) => {
+        // кнопка «Посадить растение» одна: стоит на грядке под курсором, пока курсор не перейдёт на другую пустую
+        if (this.mode !== "shop" || ridge.plant || this.plantTarget === ridge) return;
+        this.plantTarget = ridge;
+        this.renderShop();
+      },
       say: (s, x, y) => {
         toast(this.ui, s, x, y);
       },
@@ -655,12 +663,13 @@ export class Farm extends Container {
     const seeds = g.hasMark("shop_vegetation") ? g.seeds : g.seeds.filter((s) => this.rules.start.vegetations.includes(s));
     const cheapest = Math.min(...seeds.map((s) => g.buyPrice(this.rules.vegetations[s].price_buy)));
     const broke = g.gold < cheapest;
-    let plantShown = false;
+    const empty = this.ridges.filter((r) => !r.plant);
+    const target = this.plantTarget && empty.includes(this.plantTarget) ? this.plantTarget : (empty[0] ?? null);
+    this.plantTarget = target;
     for (const r of this.ridges) {
       const [ax, ay] = [r.x + r.anchorPoint[0], r.y + r.anchorPoint[1]];
       if (!r.plant) {
-        if (plantShown) continue;
-        plantShown = true;
+        if (r !== target) continue;
         if (broke) {
           const b = shopButton("medium", fmt(t.buttons.buy_veg ?? "Посадить\nрастение"), null, () => this.notEnough());
           b.setEnabled(false);

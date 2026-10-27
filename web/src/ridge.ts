@@ -17,6 +17,8 @@ interface Plant extends PlantSave {
 export interface RidgeEvents {
   /** Нажатие по лунке или растению (ферма решает, что делать). */
   tap(ridge: RidgeView): void;
+  /** Курсор над лункой или растением. */
+  hover(ridge: RidgeView): void;
   say(text: string, x: number, y: number): void;
   /** Плод собран в корзину (из любого источника: игрок или Робин). */
   harvested(ridge: RidgeView, product: string, x: number, y: number, ripeFor: number, byPlayer: boolean): void;
@@ -60,6 +62,7 @@ export class RidgeView extends Container {
     this.ground.eventMode = "static";
     this.ground.cursor = "buy";
     this.ground.on("pointertap", () => this.events.tap(this));
+    this.ground.on("pointerover", () => this.events.hover(this));
     this.addChild(this.ground, this.plantLayer, this.fx, this.drops, this.lives);
     // progresses/center_offset: капли жажды — у основания (0; −10), цветочки жизни — над растением (0; −110)
     const p = rules.progresses;
