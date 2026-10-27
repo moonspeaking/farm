@@ -51,7 +51,7 @@ export class Hud extends Container {
       storage: value(52, 214, rgb(60, 60, 60), "center"),
       water: value(52, 316, rgb(60, 60, 160), "center"),
       money: value(52, 416, rgb(255, 255, 55), "center"),
-      day: value(53, 500, rgb(60, 60, 60), "center", true, 1), // day_count (15; 486) 30×30: цифра на странице календаря, размер как у цифр склада
+      day: value(57, 500, rgb(60, 60, 60), "center", true, 1), // day_count (15; 486) 30×30: цифра на странице календаря, размер как у цифр склада
       level: value(19, 126, COLOR.white, "center", true, 0.85, "float_points"), // уровень — золотые цифры float_points слева от полоски опыта
     };
 
