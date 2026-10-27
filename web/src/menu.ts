@@ -1,8 +1,8 @@
 // Главное меню (main_menu) и вступительный комикс (first_comics).
-import { Container, Graphics } from "pixi.js";
+import { Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
 import type { Rules } from "./rules";
 import { fmt } from "./rules";
-import { dialog, H, image, roundButton, textButton, toast, W } from "./ui";
+import { dialog, H, image, roundButton, tex, textButton, toast, W } from "./ui";
 
 export interface MenuEvents {
   play(fresh: boolean): void;
@@ -26,6 +26,9 @@ const COMICS_PANELS: [number, number, number, number][][] = [
 /** Пауза между кадрами и длительность появления кадра, с. */
 const COMICS_GAP = 1.6;
 const COMICS_FADE = 0.7;
+/** После последнего кадра: пауза и проявление кнопки, с. */
+const COMICS_BUTTON_WAIT = 0.8;
+const COMICS_BUTTON_FADE = 0.6;
 
 export class Menu extends Container {
   private readonly overlay = new Container();
@@ -71,12 +74,20 @@ export class Menu extends Container {
   private comics() {
     const layer = new Container();
     layer.addChild(new Graphics().rect(0, 0, W, H).fill(0x000000));
-    const panels = COMICS_PANELS.map((r) => {
+    const panels = COMICS_PANELS.map((r, index) => {
       const c = new Container();
       const mask = new Graphics();
       for (const rect of r) mask.rect(...rect);
       mask.fill(0xffffff);
-      c.addChild(image("comics"), mask);
+      c.addChild(image("comics"));
+      if (index === COMICS_PANELS.length - 1) {
+        // «лужа» кнопки нарисована в самой картинке; пока кнопка не появилась, закрываем её соседней травой
+        const base = tex("comics");
+        const patch = new Sprite(new Texture({ source: base.source, frame: new Rectangle(608, 556, 96, 44) }));
+        patch.position.set(704, 556);
+        c.addChild(patch);
+      }
+      c.addChild(mask);
       c.mask = mask;
       c.alpha = 0;
       layer.addChild(c);
@@ -114,7 +125,10 @@ export class Menu extends Container {
         panels[shown - 1].alpha = 1;
         t = COMICS_FADE;
       }
-      if (shown >= panels.length) return;
+      if (shown >= panels.length) {
+        t = Math.max(t, COMICS_FADE + COMICS_BUTTON_WAIT + COMICS_BUTTON_FADE); // кнопку сразу
+        return;
+      }
       next();
     });
     const tick = () => {
@@ -125,10 +139,11 @@ export class Menu extends Container {
       t += dt;
       if (shown < panels.length && t >= COMICS_GAP) next();
       for (let i = 0; i < shown; i++) panels[i].alpha = i < shown - 1 ? 1 : Math.min(1, t / COMICS_FADE);
-      // кнопка появляется вместе с последним кадром, сразу в нормальном размере; нажимается, когда кадр проявился
+      // комикс закончился (последний кадр проявился) — после короткой паузы плавно появляется кнопка, сразу в нормальном размере
       if (shown === panels.length) {
-        ok.alpha = Math.min(1, t / COMICS_FADE);
-        if (t >= COMICS_FADE) ok.eventMode = "static";
+        const k = (t - COMICS_FADE - COMICS_BUTTON_WAIT) / COMICS_BUTTON_FADE;
+        ok.alpha = Math.max(0, Math.min(1, k));
+        if (k >= 1) ok.eventMode = "static";
       }
       requestAnimationFrame(tick);
     };
