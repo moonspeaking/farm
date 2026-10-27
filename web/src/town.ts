@@ -100,12 +100,11 @@ export class Town extends Container {
     this.nameTip.name = "";
   }
 
-  /** Город показали игроку: слуга с заданием — подсказки town_talker_large, затем town_talker (первый раз). */
+  /** Город показали игроку: слуга с заданием — подсказка town_talker (первый раз). */
   entered() {
     // подсказки про персонажей — часть обучения первой локации, в остальных городах их нет
     if (this.rules.location !== 1 || !this.quests.available("old_servant").length) return;
-    const first = this.tut.show("town_talker_large", 0, 0, false, () => this.tut.show("town_talker", 0, 0));
-    if (!first) this.tut.show("town_talker", 0, 0);
+    this.tut.show("town_talker", 0, 0);
   }
 
   /**
@@ -126,8 +125,25 @@ export class Town extends Container {
       const name = this.rules.texts.characters[holder] ?? "";
       return toast(this.overlay, `${name}: заданий пока нет`);
     }
+    // первый разговор: персонаж выходит на передний план (крупный портрет, фигура в городе скрыта) и показывается town_talker_large;
+    // сам разговор начинается после закрытия подсказки
+    const sprite = this.people[holder]?.[0];
+    const first = this.tut.show("town_talker_large", 0, 0, false, () => void this.startTalk(holder, list[0]));
+    if (first) {
+      if (sprite) sprite.visible = false;
+      this.nameTip.visible = false;
+      return;
+    }
+    void this.startTalk(holder, list[0]);
+  }
+
+  private async startTalk(holder: string, { quest, data }: ReturnType<QuestEngine["available"]>[number]) {
+    if (this.busy) return;
     this.busy = true;
-    const { quest, data } = list[0];
+    // в разговоре персонаж нарисован крупно на переднем плане — фигуру в городе прячем, чтобы он не двоился
+    const figure = this.people[holder]?.[0];
+    if (figure) figure.visible = false;
+    this.nameTip.visible = false;
     const talk = new Talk(this.rules.texts.buttons.ok || "OK");
     this.overlay.addChild(talk);
     await talk.play(
