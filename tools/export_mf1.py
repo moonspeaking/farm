@@ -7,6 +7,7 @@ xml/ru/ru.xml (cp1251 без объявления кодировки) → web/pu
 Запуск: python3 export_mf1.py "<папка игры>" <папка web>
 """
 import json
+import subprocess
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -583,7 +584,10 @@ def main():
     for name, src in names.items():
         img = load_image(data_dir / src)
         img.save(out_img / f"{name}.webp", lossless=True)
-    rules["images"] = sorted(names)
+    # комикс без нарисованной «лужи» кнопки (кадр с фермой, пока кнопка не появилась)
+    subprocess.run([sys.executable, str(Path(__file__).with_name("make_comics_clean.py")),
+                    str(out_img / "comics.webp"), str(out_img / "comics_clean.webp")], check=True)
+    rules["images"] = sorted([*names, "comics_clean"])
     rules["audio"] = export_audio(data_dir, web)
     # таблица рекордов по умолчанию: файл объявлен как windows-1251, но записан в cp866
     scores = (xml_dir / "ru" / "default_scores_ru.xml").read_bytes().decode("cp866")

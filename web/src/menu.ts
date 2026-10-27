@@ -1,8 +1,8 @@
 // Главное меню (main_menu) и вступительный комикс (first_comics).
-import { Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
+import { Container, Graphics } from "pixi.js";
 import type { Rules } from "./rules";
 import { fmt } from "./rules";
-import { dialog, H, image, roundButton, tex, textButton, toast, W } from "./ui";
+import { dialog, H, image, roundButton, textButton, toast, W } from "./ui";
 
 export interface MenuEvents {
   play(fresh: boolean): void;
@@ -79,16 +79,8 @@ export class Menu extends Container {
       const mask = new Graphics();
       for (const rect of r) mask.rect(...rect);
       mask.fill(0xffffff);
-      c.addChild(image("comics"));
-      if (index === COMICS_PANELS.length - 1) {
-        // «лужа» кнопки нарисована в самой картинке; пока кнопка не появилась, закрываем её зеркальной копией травы слева
-        // (зеркало вокруг x = 704, поэтому на стыке рисунок продолжается без шва)
-        const base = tex("comics");
-        const patch = new Sprite(new Texture({ source: base.source, frame: new Rectangle(608, 558, 96, 42) }));
-        patch.scale.x = -1;
-        patch.position.set(800, 558);
-        c.addChild(patch);
-      }
+      // у последнего кадра — копия без нарисованной «лужи» кнопки (tools/make_comics_clean.py), пока кнопка не появилась
+      c.addChild(image(index === COMICS_PANELS.length - 1 ? "comics_clean" : "comics"));
       c.addChild(mask);
       c.mask = mask;
       c.alpha = 0;
