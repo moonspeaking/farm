@@ -5,8 +5,19 @@ import { FontName, PopLabel, PopOptions, rgb } from "./popfont";
 export const W = 800;
 export const H = 600;
 
+let loaded: string[] = [];
+
 export async function loadImages(names: string[]) {
   await Assets.load(names.map((n) => ({ alias: `img:${n}`, src: `img/${n}.webp` })));
+  loaded = names;
+}
+
+/**
+ * Оригинал рисует картинки 1:1 с точечной выборкой (линейный фильтр включается только у масштабированных, 0x4e51d0),
+ * поэтому остаётся резким; при крупном масштабе экрана берём точечную выборку и мы.
+ */
+export function setSharp(on: boolean) {
+  for (const n of loaded) tex(n).source.scaleMode = on ? "nearest" : "linear";
 }
 
 export const tex = (name: string) => Texture.from(`img:${name}`);

@@ -13,7 +13,7 @@ import { Tutorial } from "./tutorial";
 import { WorldMap } from "./worldmap";
 import { loadFonts } from "./popfont";
 import { gameMenu, highscoresScreen, optionsScreen, pauseOverlay, recordScore } from "./screens";
-import { H, loadImages, toast, W } from "./ui";
+import { H, loadImages, setSharp, toast, W } from "./ui";
 
 async function main() {
   const app = new Application();
@@ -33,6 +33,7 @@ async function main() {
   const fit = () => {
     const k = Math.min(app.screen.width / W, app.screen.height / H);
     world.scale.set(k);
+    setSharp(k * devicePixelRatio >= 1.75);
     world.position.set((app.screen.width - W * k) / 2, (app.screen.height - H * k) / 2);
   };
   fit();
