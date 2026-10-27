@@ -642,10 +642,22 @@ export class Farm extends Container {
       this.shopLayer.addChild(b);
     };
 
-    // грядки: посадить / продать
+    // грядки: посадить / продать. Если денег не хватает ни на одно растение, кнопка красная (cant_buy) и только на одной грядке
+    const seeds = g.hasMark("shop_vegetation") ? g.seeds : g.seeds.filter((s) => this.rules.start.vegetations.includes(s));
+    const cheapest = Math.min(...seeds.map((s) => g.buyPrice(this.rules.vegetations[s].price_buy)));
+    const broke = g.gold < cheapest;
+    let cantShown = false;
     for (const r of this.ridges) {
       const [ax, ay] = [r.x + r.anchorPoint[0], r.y + r.anchorPoint[1]];
       if (!r.plant) {
+        if (broke) {
+          if (cantShown) continue;
+          cantShown = true;
+          const b = shopButton("medium", fmt(t.buttons.buy_veg ?? "Посадить\nрастение"), null, () => this.notEnough());
+          b.setEnabled(false);
+          add(b, ax, ay - 30);
+          continue;
+        }
         add(shopButton("medium", fmt(t.buttons.buy_veg ?? "Посадить\nрастение"), null, () => void this.chooseSeed(r)), ax, ay - 30);
         continue;
       }
@@ -955,6 +967,11 @@ export class Farm extends Container {
   }
 
   // ================================================================ прочее
+
+  /** Экран сменили — подсказки фермы убираются. */
+  dismissTutorial() {
+    this.tutorial.dismiss();
+  }
 
   /** Меню игры (кнопка «Меню» панели — на ферме и в городе). */
   openMenu() {

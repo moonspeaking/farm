@@ -76,6 +76,12 @@ export class Tutorial extends Container {
     return true;
   }
 
+  /** Убирает подсказку при смене экрана: цепочка «после закрытия» не продолжается. */
+  dismiss() {
+    this.after = null;
+    this.hide();
+  }
+
   hide() {
     this.removeChildren().forEach((c) => c.destroy({ children: true }));
     this.life = 0;

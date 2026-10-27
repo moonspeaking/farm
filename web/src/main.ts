@@ -52,6 +52,9 @@ async function main() {
   const curTown = () => (game ? towns[game.loc] ?? null : null);
 
   const show = (scene: Container) => {
+    // подсказки не переходят с экрана на экран
+    worldTut?.dismiss();
+    for (const f of Object.values(farms)) f.dismissTutorial();
     for (const c of world.children) if (c !== frame && c !== worldTut) c.visible = c === scene;
   };
 
@@ -86,8 +89,8 @@ async function main() {
     });
     const t: Town = new Town(lr, g, quests, {
       toFarm: () => {
-        f.refresh();
         show(f);
+        f.refresh();
       },
       toMap: () => {
         worldMap!.opened();
@@ -106,9 +109,9 @@ async function main() {
     curFarm()?.persist();
     g.switchLocation(n);
     build(g, n);
+    show(scene === "farm" ? farms[n] : towns[n]);
     farms[n].refresh();
     towns[n].refresh();
-    show(scene === "farm" ? farms[n] : towns[n]);
     if (scene === "town") towns[n].entered();
   };
 
