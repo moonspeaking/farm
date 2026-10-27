@@ -100,6 +100,11 @@ export class Town extends Container {
     this.nameTip.name = "";
   }
 
+  /** Есть персонаж с доступным заданием. */
+  hasQuests() {
+    return Object.keys(this.people).some((name) => this.quests.available(name).length > 0);
+  }
+
   /** Город показали игроку: слуга с заданием — подсказка town_talker (первый раз). */
   entered() {
     // подсказки про персонажей — часть обучения первой локации, в остальных городах их нет

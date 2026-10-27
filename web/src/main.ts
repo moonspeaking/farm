@@ -85,8 +85,8 @@ async function main() {
         f.refresh();
       },
       toMap: () => {
-        worldMap!.opened();
         show(worldMap!);
+        worldMap!.opened();
       },
       saved: () => f.persist(),
       menu: () => f.openMenu(),
@@ -128,6 +128,7 @@ async function main() {
         openTown: (n) => enter(g, n, "town"),
         openFarm: (n) => enter(g, n, "farm"),
         close: () => show(towns[g.loc]),
+        hasQuests: (n) => !towns[n] || towns[n].hasQuests(),
       }, worldTut);
       world.addChild(worldMap, worldTut);
       audio.playMusic("game");
@@ -182,6 +183,7 @@ async function main() {
   app.ticker.add((t) => {
     const dt = Math.min(t.deltaMS, 100) / 1000;
     worldTut?.update(dt);
+    if (worldMap?.visible) worldMap.update(dt);
     if (!paused && !closeMenu) {
       curFarm()?.update(dt * speed);
       if (curTown()?.visible) curTown()!.update(dt);

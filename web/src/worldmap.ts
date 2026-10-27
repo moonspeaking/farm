@@ -3,22 +3,26 @@ import { Container, Graphics, Rectangle } from "pixi.js";
 import type { Rules } from "./rules";
 import type { Game } from "./state";
 import type { Tutorial } from "./tutorial";
-import { COLOR, H, image, pop, roundButton, W } from "./ui";
+import { type Emitter, ParticleLayer } from "./particles";
+import { COLOR, image, pop, W } from "./ui";
 
 export interface MapEvents {
   openTown(n: number): void;
   openFarm(n: number): void;
   close(): void;
+  /** В городе n есть персонажи с заданиями (рядом с ним на карте идут искры). */
+  hasQuests(n: number): boolean;
 }
 
 export class WorldMap extends Container {
   private readonly places: { key: string; spot: Container; hover: Container }[] = [];
   private readonly tip = pop("", "Verdana14", COLOR.white, { align: "center" });
   private readonly tipBack = new Graphics();
+  private readonly fx = new ParticleLayer();
+  private sparks: Emitter[] = [];
 
   constructor(private readonly rules: Rules, private readonly game: Game, private readonly events: MapEvents, private readonly tut: Tutorial) {
     super();
-    const t = rules.texts;
     this.addChild(image("global_map_back"));
     for (const [key, p] of Object.entries(rules.global_map)) {
       const [kind, num] = key.split("_");
@@ -49,10 +53,7 @@ export class WorldMap extends Container {
       this.places.push({ key, spot, hover });
       this.addChild(spot);
     }
-    this.addChild(this.tipBack, this.tip);
-    const back = roundButton(t.buttons.back ?? "Назад", () => this.events.close());
-    back.position.set(W - 110, H + 10);
-    this.addChild(back);
+    this.addChild(this.fx, this.tipBack, this.tip);
     this.refresh();
   }
 
@@ -83,10 +84,17 @@ export class WorldMap extends Container {
     this.tip.visible = this.tipBack.visible = false;
   }
 
-  /** Карту открыли: первый раз — подсказка про первый город. */
+  /** Карту открыли: первый раз — подсказка про первый город, за ней — «Нажмите сюда для перехода в город» у самого города. */
   opened() {
     this.refresh();
-    this.tut.show("first_town", 0, 0);
+    const town = this.rules.global_map.town_1;
+    const spot: [number, number] = [town.position[0] + town.dimensions[0] / 2 - 8, town.position[1] + town.dimensions[1] / 2 - 4];
+    const first = this.tut.show("first_town", 0, 0, false, () => this.tut.show("global_map_show_town_baloon", spot[0], spot[1]));
+    if (!first) this.tut.show("global_map_show_town_baloon", spot[0], spot[1]);
+  }
+
+  update(dt: number) {
+    this.fx.update(dt);
   }
 
   /** Закрытые места не реагируют на наведение. */
@@ -94,6 +102,16 @@ export class WorldMap extends Container {
     for (const p of this.places) {
       p.spot.cursor = this.open(p.key) ? "talk" : "default";
       p.hover.visible = false;
+    }
+    // искры у открытых городов, где ждут персонажи с заданиями (эффект level-available-quests)
+    for (const e of this.sparks) e.stop();
+    this.sparks = [];
+    for (const p of this.places) {
+      const [kind, num] = p.key.split("_");
+      if (kind !== "town" || !this.open(p.key) || !this.events.hasQuests(Number(num))) continue;
+      const area = this.rules.global_map[p.key];
+      const e = this.fx.start("level-available-quests", area.position[0] + area.dimensions[0] / 2 - 8, area.position[1] + area.dimensions[1] / 2);
+      if (e) this.sparks.push(e);
     }
     this.hideTip();
   }

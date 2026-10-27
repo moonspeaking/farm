@@ -52,7 +52,8 @@ export class Tutorial extends Container {
 
     // пузырь оригинала: тёмно-зелёный (17; 102; 21, 230/255) с чёрной рамкой, белый текст Verdana14,
     // хвостик — картинка buy_veg_baloon (28 × 18) на одном из нижних углов, остриё на 11 px от края
-    const label = pop(fmt(text), "Verdana14", COLOR.white, { wrap: 300 });
+    // ширина строки: у подсказки карты в оригинале весь текст в одну строку
+    const label = pop(fmt(text), "Verdana14", COLOR.white, { wrap: id === "global_map_show_town_baloon" ? 380 : 300 });
     const withClose = id !== "town_talker_large";
     const close = textButton(this.rules.texts.buttons.tutorial_baloon_close ?? "Закрыть", () => this.hide(), "small");
     const w = Math.max(label.textWidth, 60) + 14;
