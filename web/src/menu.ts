@@ -88,11 +88,13 @@ export class Menu extends Container {
     });
     // first_comics/ok: 612; 517 — кнопка уходит за нижний край
     ok.position.set(612 + 103, 517 + 99);
-    // подложка перевёрнута (ободок снизу), подпись остаётся прямой и лежит в видимой части экрана (y ≈ 570)
+    // подложка перевёрнута (ободок снизу), подпись остаётся прямой и лежит в видимой части экрана (y ≈ 570);
+    // кнопка не «выскакивает», а плавно проявляется сразу в нормальном размере
     ok.children[0].rotation = Math.PI;
     ok.children[1].y = -36;
     ok.children[1].scale.set(1.15); // подпись в оригинале примерно на 15% крупнее и ниже, у нижнего края кнопки
-    ok.visible = false;
+    ok.alpha = 0;
+    ok.eventMode = "none"; // кнопка нажимается только после появления подписи
     layer.addChild(ok);
     this.overlay.addChild(layer);
 
@@ -123,7 +125,11 @@ export class Menu extends Container {
       t += dt;
       if (shown < panels.length && t >= COMICS_GAP) next();
       for (let i = 0; i < shown; i++) panels[i].alpha = i < shown - 1 ? 1 : Math.min(1, t / COMICS_FADE);
-      if (shown === panels.length && t >= COMICS_FADE) ok.visible = true;
+      // подпись появляется плавно после последнего кадра
+      if (shown === panels.length && t >= COMICS_FADE) {
+        ok.alpha = Math.min(1, (t - COMICS_FADE) / 0.6);
+        ok.eventMode = "static";
+      }
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
