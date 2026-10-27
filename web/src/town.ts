@@ -47,7 +47,12 @@ export class Town extends Container {
       const label = pop(t.characters[name] ?? "", "comic_stroke_white_14", COLOR.white, { align: "center", scale: 0.6 });
       label.anchor.set(0.5, 0);
       label.position.set(s.x + s.width / 2, s.y + s.height - 22);
-      this.people[name] = [s, label];
+      // имя персонажа показывается только при наведении
+      label.visible = false;
+      label.eventMode = "none";
+      s.on("pointerover", () => (label.visible = s.visible));
+      s.on("pointerout", () => (label.visible = false));
+      this.people[name] = [s];
       this.addChild(s, label, mark);
     }
 
@@ -63,7 +68,8 @@ export class Town extends Container {
 
   /** Город показали игроку: слуга с заданием — подсказки town_talker_large, затем town_talker (первый раз). */
   entered() {
-    if (!this.quests.available("old_servant").length) return;
+    // подсказки про персонажей — часть обучения первой локации, в остальных городах их нет
+    if (this.rules.location !== 1 || !this.quests.available("old_servant").length) return;
     const first = this.tut.show("town_talker_large", 0, 0, false, () => this.tut.show("town_talker", 0, 0));
     if (!first) this.tut.show("town_talker", 0, 0);
   }
