@@ -207,6 +207,20 @@ export class RidgeView extends Container {
     this.updateRows();
   }
 
+  /** Конец дня: несобранные плоды пропадают, таймер появления следующего заводится заново. */
+  clearProducts() {
+    const p = this.plant;
+    if (!p) return;
+    p.views.forEach((v, i) => {
+      v?.destroy();
+      p.views[i] = null;
+      p.products[i] = null;
+      p.ripeFor[i] = Infinity;
+    });
+    p.produceTotal = this.nextProduce(p.def, p.name);
+    p.produceIn = p.produceTotal;
+  }
+
   /** Полив днём: true, если растение хотело пить. */
   water(): boolean {
     const p = this.plant;
