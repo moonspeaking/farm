@@ -1,11 +1,10 @@
 // Окно умений (level_up): две колонки — Айрис слева, Робин справа; очко умений вкладывается кнопкой «Поднять Уровень».
-import { Container, Graphics } from "pixi.js";
+import { Container, Graphics, NineSliceSprite } from "pixi.js";
 import { audio } from "./audio";
 import type { PopLabel } from "./popfont";
-import { rgb } from "./popfont";
 import { fmt, Rules } from "./rules";
 import { Game, SKILLS, SkillName } from "./state";
-import { COLOR, H, image, pop, textButton, W } from "./ui";
+import { COLOR, H, image, pop, tex, textButton, W } from "./ui";
 
 /** Положение полосок и значков умений в окне — из properties_ru.xml (level_up/progresses, icons). */
 const SLOTS: Record<SkillName, { bar: [number, number]; icon: [number, number]; side: "girl" | "helper" }> = {
@@ -17,23 +16,28 @@ const SLOTS: Record<SkillName, { bar: [number, number]; icon: [number, number]; 
   helper_attack: { bar: [180, 205], icon: [186, 208], side: "helper" },
 };
 
+/** Полоска прогресса умения (level_up/progresses): положение внутри пилюли 120×24 и цвет заполнения; следующий уровень — оранжевым. */
+const PROGRESS: Record<SkillName, { at: [number, number]; color: number }> = {
+  trade: { at: [8, 7], color: 0x4888be },
+  farm: { at: [8, 6], color: 0x66be02 },
+  attack: { at: [8, 6], color: 0xd64187 },
+  helper_pour: { at: [45, 7], color: 0x4461be },
+  helper_product: { at: [45, 6], color: 0x4e9100 },
+  helper_attack: { at: [45, 6], color: 0x9f3065 },
+};
+const NEXT_COLOR = 0xd6632a;
+const MAX_LEVEL = 5;
+
 const ICON: Record<SkillName, string> = {
   trade: "lu_trade", farm: "lu_farm", attack: "lu_attack",
   helper_pour: "lu_helper_pour", helper_product: "lu_helper_product", helper_attack: "lu_helper_attack",
 };
 
-/** Подписи прибавок умений (в оригинале этой строки нет — показывается только описание умения). */
-const GAIN: Record<string, string> = {
-  sell_goods: "продажа", buy_goods: "покупка", attack: "атака", new_product: "плодоношение", vegetation_life: "жизнь растений",
-  hungry: "время до жажды", grow_up: "рост", helper_attack: "атака Робина", helper_attack_speed: "скорость атаки",
-  helper_product: "сбор", helper_product_speed: "скорость сбора", helper_pour: "полив", helper_pour_speed: "скорость полива",
-};
-
 export class LevelUp extends Container {
   private selected: SkillName | null = null;
+  private hover: SkillName | null = null;
   private readonly box = new Container();
   private readonly desc: PopLabel;
-  private readonly note: PopLabel;
   private readonly marks = new Container();
   private readonly buttonHolder = new Container();
 
@@ -68,6 +72,14 @@ export class LevelUp extends Container {
       const hit = new Graphics().rect(slot.bar[0], slot.bar[1], 120, 24).fill({ color: 0xffffff, alpha: 0.001 });
       hit.eventMode = off ? "none" : "static";
       hit.cursor = "pointer";
+      hit.on("pointerover", () => {
+        this.hover = skill;
+        this.render();
+      });
+      hit.on("pointerout", () => {
+        if (this.hover === skill) this.hover = null;
+        this.render();
+      });
       hit.on("pointertap", (e) => {
         e.stopPropagation();
         this.selected = skill;
@@ -79,9 +91,7 @@ export class LevelUp extends Container {
     // описание на бумажном свитке: description (44; 237) 255×85
     this.desc = pop("", "Verdana14", COLOR.black, { wrap: 250, lineOffset: -3 });
     this.desc.position.set(44, 240);
-    this.note = pop("", "BritannicBold14", rgb(110, 60, 20), { align: "center" });
-    this.note.position.set(349 / 2, 318);
-    this.box.addChild(this.desc, this.note, this.buttonHolder);
+    this.box.addChild(this.desc, this.buttonHolder);
     shade.on("pointertap", () => this.close());
     this.render();
   }
@@ -97,31 +107,35 @@ export class LevelUp extends Container {
     for (const skill of SKILLS) {
       const slot = SLOTS[skill];
       const level = g.skills[skill];
-      // пять делений в пилюле 120×24: заполненные — золотом, выбранное умение — с подсветкой
-      for (let i = 0; i < 5; i++) {
-        const seg = new Graphics()
-          .roundRect(slot.bar[0] + 8 + i * 21, slot.bar[1] + 6, 18, 12, 4)
-          .fill(i < level ? 0xf2c14e : 0x2c3a50);
-        if (i < level) seg.stroke({ color: 0xfff0a0, width: 1 });
-        this.marks.addChild(seg);
-      }
-      if (skill === this.selected) {
-        this.marks.addChild(new Graphics().roundRect(slot.bar[0] - 2, slot.bar[1] - 1, 124, 26, 9).stroke({ color: 0xffee66, width: 3 }));
-      }
+      // заполнение — пилюля progress (68×11) нужной длины: текущий уровень цветом умения, следующий (у выбранного) оранжевым
+      const prog = PROGRESS[skill];
+      const capsule = (frac: number, color: number) => {
+        const w = Math.max(11, 68 * frac);
+        const c = new NineSliceSprite({ texture: tex("lu_progress"), leftWidth: 5, rightWidth: 5, topHeight: 0, bottomHeight: 0 });
+        c.width = w;
+        c.tint = color;
+        c.position.set(slot.bar[0] + prog.at[0], slot.bar[1] + prog.at[1]);
+        const glass = image("lu_glass");
+        glass.position.set(c.x + 3, c.y + 1);
+        this.marks.addChild(c, glass);
+      };
+      const showNext = skill === this.selected && g.skillPoints > 0 && level < MAX_LEVEL;
+      if (showNext) capsule((level + 1) / MAX_LEVEL, NEXT_COLOR);
+      if (level > 0) capsule(level / MAX_LEVEL, prog.color);
+      // рамка 120×24: выбранное умение — selected_color (красная), под курсором — overed_color (зелёная)
+      if (skill === this.selected) this.marks.addChild(new Graphics().rect(slot.bar[0], slot.bar[1], 120, 24).stroke({ color: 0xff0000, width: 1 }));
+      else if (skill === this.hover) this.marks.addChild(new Graphics().rect(slot.bar[0], slot.bar[1], 120, 24).stroke({ color: 0x00ff00, width: 1 }));
     }
 
     const t = this.rules.texts;
     const points = g.skillPoints;
     if (this.selected) {
       const s = this.selected;
-      const lvl = g.skills[s];
-      const next = this.rules.skills[s]?.[lvl];
-      const gain = next ? `Следующий уровень: ${Object.entries(next).map(([k, v]) => `${GAIN[k] ?? k} +${Math.round(v * 100)}%`).join(", ")}` : "";
-      this.desc.text = `${t.skill_characteristics[s] ?? ""}\n${fmt(t.skill_desc[s])}${lvl >= 5 ? "" : `\n${gain}`}`;
+      // в оригинале на свитке только описание умения (description 255 × 85)
+      this.desc.text = fmt(t.skill_desc[s]);
     } else {
       this.desc.text = points > 0 ? fmt(t.tutorial.level_up) : `${t.stats.hero_title}: ${g.exp}`;
     }
-    this.note.text = `${points > 0 ? `+${points}` : ""} ${t.stats.hero_title} ${g.level}`.trim();
 
     this.buttonHolder.removeChildren().forEach((c) => c.destroy({ children: true }));
     const can = !!this.selected && points > 0 && g.skills[this.selected] < 5;
