@@ -1,7 +1,9 @@
 // Город первой локации (town_screen): персонажи с заданиями, продавцы, возврат на ферму.
-import { Container, Sprite } from "pixi.js";
+import { Container, Graphics, Sprite } from "pixi.js";
+import { Hud } from "./hud";
 import type { QuestEngine } from "./quests";
 import type { Rules } from "./rules";
+import type { Game } from "./state";
 import { Talk } from "./talk";
 import type { Tutorial } from "./tutorial";
 import { COLOR, image, pop, roundButton, toast } from "./ui";
@@ -10,6 +12,8 @@ export interface TownEvents {
   toFarm(): void;
   toMap(): void;
   saved(): void;
+  /** Кнопка «Меню» левой панели. */
+  menu(): void;
 }
 
 export class Town extends Container {
@@ -18,9 +22,12 @@ export class Town extends Container {
   private readonly people: Record<string, Container[]> = {};
   private readonly overlay = new Container();
   private busy = false;
+  private readonly hud: Hud;
+  private readonly nameTip = new Container();
 
   constructor(
     private readonly rules: Rules,
+    game: Game,
     private readonly quests: QuestEngine,
     private readonly events: TownEvents,
     private readonly tut: Tutorial,
@@ -44,16 +51,12 @@ export class Town extends Container {
       mark.scale.set(1.3);
       mark.position.set(s.x + s.width / 2, s.y + 64);
       this.markers[name] = mark;
-      const label = pop(t.characters[name] ?? "", "comic_stroke_white_14", COLOR.white, { align: "center", scale: 0.6 });
-      label.anchor.set(0.5, 0);
-      label.position.set(s.x + s.width / 2, s.y + s.height - 22);
-      // имя персонажа показывается только при наведении
-      label.visible = false;
-      label.eventMode = "none";
-      s.on("pointerover", () => (label.visible = s.visible));
-      s.on("pointerout", () => (label.visible = false));
+      // имя персонажа — плашка у курсора при наведении (курсор «губы» задан cursor = "talk")
+      s.on("pointerover", (e) => this.showName(name, e.global.x, e.global.y));
+      s.on("pointermove", (e) => this.showName(name, e.global.x, e.global.y));
+      s.on("pointerout", () => this.hideName());
       this.people[name] = [s];
-      this.addChild(s, label, mark);
+      this.addChild(s, mark);
     }
 
     // круглые кнопки town_screen, как на ферме: to_global_map (193; -110) и shop_screen_farm (527; -110)
@@ -62,8 +65,45 @@ export class Town extends Container {
     const farm = roundButton(t.buttons.shop_screen_farm ?? "На Ферму", () => this.events.toFarm());
     farm.position.set(527 + 103, -110 + 99);
     this.addChild(map, farm);
-    this.addChild(this.overlay);
+    // левая панель Айрис — та же, что на ферме
+    this.hud = new Hud(rules, game, { openLevelUp: () => undefined, menu: () => this.events.menu() });
+    this.addChild(this.hud, this.overlay, this.nameTip);
+    game.onChange(() => this.hud.update());
+    this.hud.update();
+    this.nameTip.eventMode = "none";
+    this.nameTip.visible = false;
     this.refresh();
+  }
+
+  update(dt: number) {
+    this.hud.tick(dt);
+  }
+
+  /** Плашка с именем у курсора: тёмно-зелёная, белый жирный текст (на скриншоте оригинала). */
+  private showName(holder: string, gx: number, gy: number) {
+    const name = this.rules.texts.characters[holder] ?? "";
+    if (!name || !this.people[holder][0].visible) return;
+    if (this.nameTip.name !== holder) {
+      this.nameTip.removeChildren().forEach((c) => c.destroy());
+      const text = pop(name, "Verdana14", COLOR.white, { align: "center" });
+      text.anchor.set(0.5, 0.5);
+      const w = text.textWidth + 24;
+      const h = text.textHeight + 12;
+      const box = new Graphics().rect(-w / 2, -h, w, h).fill(0x006400).stroke({ color: 0x000000, width: 1 });
+      text.position.set(0, -h / 2);
+      this.nameTip.addChild(box, text);
+      this.nameTip.name = holder;
+    }
+    const p = this.toLocal({ x: gx, y: gy });
+    // над курсором-губами (его картинка поднимается на 20 px над точкой), в пределах экрана
+    const half = this.nameTip.width / 2;
+    this.nameTip.position.set(Math.max(half + 4, Math.min(800 - half - 4, p.x)), Math.max(this.nameTip.height + 4, p.y - 22));
+    this.nameTip.visible = true;
+  }
+
+  private hideName() {
+    this.nameTip.visible = false;
+    this.nameTip.name = "";
   }
 
   /** Город показали игроку: слуга с заданием — подсказки town_talker_large, затем town_talker (первый раз). */

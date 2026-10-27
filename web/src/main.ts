@@ -84,7 +84,7 @@ async function main() {
       addVegetation: (v) => f.addVegetation(v),
       removeVegetation: (v) => f.removeVegetation(v),
     });
-    const t: Town = new Town(lr, quests, {
+    const t: Town = new Town(lr, g, quests, {
       toFarm: () => {
         f.refresh();
         show(f);
@@ -94,6 +94,7 @@ async function main() {
         show(worldMap!);
       },
       saved: () => f.persist(),
+      menu: () => f.openMenu(),
     }, worldTut!);
     farms[n] = f;
     towns[n] = t;
@@ -172,7 +173,10 @@ async function main() {
   app.ticker.add((t) => {
     const dt = Math.min(t.deltaMS, 100) / 1000;
     worldTut?.update(dt);
-    if (!paused) curFarm()?.update(dt * speed);
+    if (!paused) {
+      curFarm()?.update(dt * speed);
+      if (curTown()?.visible) curTown()!.update(dt);
+    }
   });
 }
 

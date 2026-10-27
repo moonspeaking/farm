@@ -104,7 +104,7 @@ export class Farm extends Container {
     super();
     const t = rules.texts;
     this.addChild(image(rules.bg_image), this.objects, this.weatherFx, this.shopLayer, this.top, this.screens, (this.tutorial = new Tutorial(rules, game, () => audio.options.warnings)));
-    this.hud = new Hud(rules, game, { openLevelUp: () => this.openLevelUp(), menu: () => this.events.toMenu() });
+    this.hud = new Hud(rules, game, { openLevelUp: () => this.openLevelUp(), menu: () => this.openMenu() });
     this.addChild(this.hud, this.ui);
     // подсказки стоят над панелью, чтобы их было видно
     this.addChild(this.tutorial);
@@ -955,6 +955,11 @@ export class Farm extends Container {
   }
 
   // ================================================================ прочее
+
+  /** Меню игры (кнопка «Меню» панели — на ферме и в городе). */
+  openMenu() {
+    this.events.toMenu();
+  }
 
   private renderStats() {
     this.hud.update();
