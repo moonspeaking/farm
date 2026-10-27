@@ -66,7 +66,8 @@ export class BouquetScreen extends Container {
     caption.position.set(469, 36);
     this.addChild(caption);
     const back = textButton(t.buttons.back ?? "Назад", () => this.close());
-    back.position.set(469, 574);
+    // exit: позиция 422; 524, размер 81 × 34
+    back.position.set(422 + 81 / 2, 524 + 34 / 2);
     this.addChild(back);
 
     this.on("globalpointermove", (e) => this.move(e.global.x, e.global.y));
