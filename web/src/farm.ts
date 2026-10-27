@@ -851,21 +851,19 @@ export class Farm extends Container {
     const ink = COLOR.black;
     const title = pop(t.buy_water.title ?? "Покупка воды", "TC4_16_en", ink, { align: "center", scale: 1.2 });
     title.position.set(0, 46);
-    const desc = pop(t.buy_water.desc ?? "", "Verdana14", ink, { align: "center", wrap: 330 });
-    desc.position.set(0, 78);
-    const money = pop("", "BritannicBold14", ink, { align: "center" });
-    money.position.set(0, 116);
+    // ширина с запасом, чтобы описание не переносилось на вторую строку; строку «Деньги» не показываем — деньги видны на панели
+    const desc = pop(t.buy_water.desc ?? "", "Verdana14", ink, { align: "center", wrap: 420 });
+    desc.position.set(0, 82);
     const water = pop("", "BritannicBold14", rgb(60, 60, 160), { align: "center" });
-    water.position.set(0, 138);
+    water.position.set(0, 122);
     const priceLabel = pop("", "BritannicBold14", ink, { align: "center" });
-    priceLabel.position.set(0, 166);
-    box.addChild(title, desc, money, water, priceLabel);
+    priceLabel.position.set(0, 150);
+    box.addChild(title, desc, water, priceLabel);
     const close = () => {
       layer.destroy({ children: true });
       this.afterPurchase();
     };
     const refresh = () => {
-      money.text = fmt(t.buy_water.money, { money: g.gold });
       water.text = fmt(t.buy_water.water, { current: g.water, total: g.waterMax });
       priceLabel.text = fmt(t.buttons.water_price, { price: g.buyPrice(this.rules.prices.water) });
     };
@@ -881,11 +879,11 @@ export class Farm extends Container {
       this.renderStorages();
     };
     const b1 = textButton(t.buttons.buy_water ?? "Купить литр воды", () => buy(1));
-    b1.position.set(0, 218);
+    b1.position.set(0, 200);
     const b2 = textButton(t.buttons.buy_water_all ?? "Заполнить Все", () => buy(1e9));
-    b2.position.set(0, 258);
+    b2.position.set(0, 238);
     const b3 = textButton(t.buttons.buy_water_exit ?? "Закрыть", close);
-    b3.position.set(0, 298);
+    b3.position.set(0, 276);
     box.addChild(b1, b2, b3);
     shade.on("pointertap", close);
     refresh();
