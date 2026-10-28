@@ -611,7 +611,12 @@ export class Farm extends Container {
     if (!free && this.game.water <= 0) {
       const at = r.toGlobal({ x: r.anchorPoint[0], y: -30 });
       toast(this.ui, this.rules.texts.events.no_water ?? "Нет Воды", at.x, at.y);
-      this.tutorial.show("first_no_water", at.x, at.y + 30);
+      // подсказка обещает «сейчас мы заполним вашу бочку» — при первом показе бочки заполняются
+      if (this.tutorial.show("first_no_water", at.x, at.y + 30)) {
+        this.game.water = this.game.waterMax;
+        this.game.changed();
+        this.renderStorages();
+      }
       return;
     }
     const exp = r.plant.def.exp_for_pour ?? 0;
