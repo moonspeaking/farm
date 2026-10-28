@@ -48,7 +48,7 @@ export class LevelUp extends Container {
     private readonly onClose: () => void,
   ) {
     super();
-    const shade = new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.45 });
+    const shade = new Graphics().rect(-W, 0, 3 * W, H).fill({ color: 0x000000, alpha: 0.45 });
     shade.eventMode = "static";
     this.addChild(shade, this.box);
     this.box.position.set((W - 349) / 2 + 40, (H - 446) / 2);

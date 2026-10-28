@@ -175,7 +175,7 @@ export function dialog(
 ): Promise<string> {
   return new Promise((resolve) => {
     const layer = new Container();
-    const shade = new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.4 });
+    const shade = new Graphics().rect(-W, 0, 3 * W, H).fill({ color: 0x000000, alpha: 0.4 });
     shade.eventMode = "static";
     layer.addChild(shade);
 

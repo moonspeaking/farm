@@ -5,6 +5,15 @@ import { fmt } from "./rules";
 import type { Game } from "./state";
 import { COLOR, H, image, pop, textButton, W } from "./ui";
 
+/** На сенсорном экране (планшет, телефон) в подсказках нет мыши: «нажмите на нём левой кнопкой мыши» → «нажмите на нём». */
+function forDevice(text: string) {
+  if (!window.matchMedia?.("(pointer: coarse)").matches) return text;
+  return text
+    .replace("Щелкайте", "Нажимайте")
+    .replace(/\s+левой кнопкой мышк?и/g, "")
+    .replace(/левую кнопку мыши/g, "палец");
+}
+
 export class Tutorial extends Container {
   private life = 0;
   private after: (() => void) | null = null;
@@ -47,7 +56,7 @@ export class Tutorial extends Container {
       const drawn = step.image.startsWith("talker_");
       if (!drawn) pic.blendMode = "erase";
       const fade = new Container();
-      fade.addChild(new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: step.alpha }));
+      fade.addChild(new Graphics().rect(-W, 0, 3 * W, H).fill({ color: 0x000000, alpha: step.alpha }));
       if (!drawn) fade.addChild(pic);
       fade.cacheAsTexture(true);
       // затемнение не перехватывает нажатия: нажатие на подсвеченную цель выполняет действие и убирает подсказку
@@ -59,7 +68,7 @@ export class Tutorial extends Container {
     // пузырь оригинала: тёмно-зелёный (17; 102; 21, 230/255) с чёрной рамкой, белый текст Verdana14,
     // хвостик — картинка buy_veg_baloon (28 × 18) на одном из нижних углов, остриё на 11 px от края
     // ширина строки: у подсказки карты в оригинале весь текст в одну строку
-    const label = pop(fmt(text), "Verdana14", COLOR.white, { wrap: id === "global_map_show_town_baloon" ? 380 : 300 });
+    const label = pop(forDevice(fmt(text)), "Verdana14", COLOR.white, { wrap: id === "global_map_show_town_baloon" ? 380 : 300 });
     const withClose = id !== "town_talker_large";
     const close = textButton(this.rules.texts.buttons.tutorial_baloon_close ?? "Закрыть", () => this.hide(), "small");
     const w = Math.max(label.textWidth, 60) + 14;
