@@ -16,6 +16,8 @@
       html, body { margin: 0; height: 100%; background: #10140c; overflow: hidden; touch-action: none; }
       #game { position: fixed; inset: 0; }
       #loading { position: fixed; inset: 0; background: #000; z-index: 10; }
+      #rotate { position: fixed; left: 0; right: 0; top: 0; z-index: 20; display: none; padding: 10px 44px 10px 14px; background: rgba(20, 40, 12, 0.92); color: #e8f0c8; font: 14px/1.3 system-ui, sans-serif; }
+      #rotate b { position: absolute; right: 12px; top: 6px; font-size: 22px; cursor: pointer; }
       #loadcv { position: absolute; inset: 0; width: 100%; height: 100%; }
     </style>
   </head>
@@ -110,6 +112,7 @@
       })();
     </script>
     <div id="game"></div>
+    <div id="rotate">Поверните телефон горизонтально: игра станет крупнее и читабельнее.<b id="rotate-close">×</b></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -47,25 +47,55 @@ def parse(path):
     return {"image": image, "ascent": ascent, "glyphs": glyphs, "space": spaces.get(" ", 5)}
 
 
+MAX_WIDTH = 2048  # на многих телефонах предел текстуры 4096, а у части старых 2048: широкие полосы шрифтов переупаковываем строками
+
+
+def repack(img, fonts):
+    """Если картинка шире MAX_WIDTH, глифы укладываются строками и координаты во всех шрифтах этой картинки пересчитываются."""
+    if img.width <= MAX_WIDTH:
+        return img
+    rects = sorted({tuple(g[:4]) for f in fonts for g in f["glyphs"].values() if g[2] > 0 and g[3] > 0}, key=lambda r: (r[1], r[0]))
+    placed, x, y, row_h = {}, 0, 0, 0
+    for r in rects:
+        if x + r[2] > MAX_WIDTH:
+            x, y, row_h = 0, y + row_h + 2, 0
+        placed[r] = (x, y)
+        x += r[2] + 2
+        row_h = max(row_h, r[3])
+    out = Image.new("RGBA", (MAX_WIDTH, y + row_h), (0, 0, 0, 0))
+    for r, (nx, ny) in placed.items():
+        out.paste(img.crop((r[0], r[1], r[0] + r[2], r[1] + r[3])), (nx, ny))
+    for f in fonts:
+        for g in f["glyphs"].values():
+            if tuple(g[:4]) in placed:
+                g[0], g[1] = placed[tuple(g[:4])]
+    return out
+
+
 def main():
     game, web = Path(sys.argv[1]), Path(sys.argv[2])
     fonts_dir = game / "data" / "fonts"
     out = web / "public" / "fonts"
     out.mkdir(parents=True, exist_ok=True)
     result = {}
-    for name in FONTS:
-        f = parse(fonts_dir / f"{name}.txt")
-        src = next(p for p in (fonts_dir / f"{f['image']}.png", fonts_dir / f"_{f['image']}.png",
-                               fonts_dir / f"_{f['image']}.jpg") if p.exists())
+    parsed = {name: parse(fonts_dir / f"{name}.txt") for name in FONTS}
+    by_image = {}
+    for name, f in parsed.items():
+        by_image.setdefault(f["image"], []).append(f)
+    for image, fonts in by_image.items():
+        src = next(p for p in (fonts_dir / f"{image}.png", fonts_dir / f"_{image}.png", fonts_dir / f"_{image}.jpg") if p.exists())
         img = Image.open(src).convert("RGBA")
         if img.getchannel("A").getextrema()[0] == 255:
             # картинка без альфы: яркость — это маска глифа (чёрное — прозрачно), буквы белые
             lum = img.convert("L")
             img = Image.merge("RGBA", (*(Image.new("L", img.size, 255),) * 3, lum))
-        img.save(out / f"{f['image']}.webp", lossless=True)
-        f["height"] = img.height
+        for f in fonts:
+            f["height"] = img.height  # высота строки — по исходной полосе, а не по переупакованной картинке
+        img = repack(img, fonts)
+        img.save(out / f"{image}.webp", lossless=True)
+    for name, f in parsed.items():
         result[name] = f
-        print(f"{name:26} {len(f['glyphs']):3} глифов, картинка {f['image']} {img.size}")
+        print(f"{name:26} {len(f['glyphs']):3} глифов, картинка {f['image']}")
     (out / "fonts.json").write_text(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
 
 

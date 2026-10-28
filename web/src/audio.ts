@@ -41,18 +41,27 @@ class AudioManager {
     );
   }
 
-  /** Браузер разрешает звук только после касания: вызывается из первого pointerdown. */
+  /**
+   * Браузер разрешает звук только после жеста пользователя. На телефонах (Chrome, Samsung Internet) жестом считается
+   * отпускание пальца или click, но не pointerdown, поэтому вызывается из нескольких событий и пробует снова, пока контекст не запустится.
+   */
   unlock() {
     if (this.unlocked) return;
-    this.unlocked = true;
-    void this.ctx?.resume();
-    // музыку, которую браузер не дал включить сам (автовоспроизведение), запускаем с первого касания или клавиши
-    if (this.playlist.length && (!this.music || this.music.paused)) this.startTrack();
+    const ctx = this.ctx;
+    const done = () => {
+      if (this.unlocked) return;
+      this.unlocked = true;
+      // музыку, которую браузер не дал включить сам (автовоспроизведение), запускаем с первого касания или клавиши
+      if (this.playlist.length && (!this.music || this.music.paused)) this.startTrack();
+    };
+    if (!ctx) return done();
+    void ctx.resume().then(() => ctx.state === "running" && done()).catch(() => undefined);
   }
 
   play(name: string, volume = 1) {
     const buf = this.buffers.get(name);
-    if (!buf || !this.ctx || !this.soundGain || this.ctx.state !== "running") return;
+    if (!buf || !this.ctx || !this.soundGain) return;
+    if (this.ctx.state !== "running") return void this.ctx.resume().catch(() => undefined); // контекст мог уснуть (вкладка в фоне)
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
     if (volume !== 1) {

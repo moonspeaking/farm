@@ -34,8 +34,9 @@ async function main() {
     loadParticles().then(() => ((part.rest += 0.5), report())),
     audio.load(rules.audio, (f) => ((part.snd = f), report())),
   ]);
-  window.addEventListener("pointerdown", () => audio.unlock());
-  window.addEventListener("keydown", () => audio.unlock());
+  // на телефонах звук включается только жестом «отпустил палец» / click — слушаем все события, пока контекст не запустится
+  for (const type of ["pointerdown", "pointerup", "touchend", "click", "keydown"]) window.addEventListener(type, () => audio.unlock(), { passive: true });
+  document.addEventListener("visibilitychange", () => !document.hidden && audio.unlock());
   audio.playMusic("menu"); // музыка меню — сразу при открытии; если браузер не разрешил, начнётся с первого касания
   document.title = rules.texts.title;
   loader?.done();
@@ -51,12 +52,35 @@ async function main() {
   };
   fit();
   app.renderer.on("resize", fit);
+  // в портретной ориентации экран 4:3 вписывается по ширине и всё мелко — просим повернуть телефон (можно закрыть)
+  const rotate = document.getElementById("rotate");
+  const checkRotate = () => {
+    let closed = false;
+    try {
+      closed = sessionStorage.getItem("rotate-closed") === "1";
+    } catch {
+      // без хранилища подсказка просто покажется снова
+    }
+    if (rotate) rotate.style.display = !closed && innerWidth < innerHeight * 0.8 && innerWidth < 700 ? "block" : "none";
+  };
+  document.getElementById("rotate-close")?.addEventListener("click", () => {
+    try {
+      sessionStorage.setItem("rotate-closed", "1");
+    } catch {
+      // нечего запоминать
+    }
+    checkRotate();
+  });
+  window.addEventListener("resize", checkRotate);
+  checkRotate();
   const frame = new Graphics().rect(0, 0, W, H).fill(0xffffff);
   world.addChild(frame);
   world.mask = frame;
   // цветокоррекция под вид оригинала. Подобрана по кадру оригинала (трава справа внизу фермы): средний цвет (0,206; 0,537; 0,076),
   // насыщенность 0,872 против (0,246; 0,523; 0,105) и 0,823 у самих файлов — насыщенность +15 %, красный ×0,87, зелёный ×0,97, синий ×0,96
   const grade = new ColorMatrixFilter();
+  // по умолчанию фильтр рисует с разрешением 1 и картинка на телефонах с плотностью экрана 2–3 растягивается и мутнеет — берём разрешение экрана
+  grade.resolution = "inherit";
   grade.saturate(0.15, false);
   for (let i = 0; i < 5; i++) {
     grade.matrix[i] *= 0.87;
