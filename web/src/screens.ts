@@ -131,11 +131,15 @@ export function optionsScreen(parent: Container, rules: Rules, onClose: () => vo
     off.cursor = on.cursor = "pointer";
     for (const s of [on, off]) s.on("pointertap", () => (set(!get()), sync()));
     sync();
+    return sync;
   };
-  check(t.fullscreen ?? "На весь экран", 190, () => !!document.fullscreenElement, (v) => {
+  const fullscreenCheck = check(t.fullscreen ?? "На весь экран", 190, () => !!document.fullscreenElement, (v) => {
     if (v) void document.documentElement.requestFullscreen?.().catch(() => undefined);
     else void document.exitFullscreen?.().catch(() => undefined);
   });
+  // полный экран включается не мгновенно (и клавишей F тоже) — флажок обновляется, когда режим действительно сменился
+  document.addEventListener("fullscreenchange", fullscreenCheck);
+  layer.once("destroyed", () => document.removeEventListener("fullscreenchange", fullscreenCheck));
   check(t.custom_cursor ?? "Специальные Курсоры", 212, () => cur.cursors, (v) => {
     cur.cursors = v;
     audio.setOptions({ ...cur });

@@ -2,7 +2,7 @@
 import { Container, Graphics } from "pixi.js";
 import type { Rules } from "./rules";
 import { fmt } from "./rules";
-import { dialog, H, image, roundButton, textButton, toast, W } from "./ui";
+import { dialog, H, image, roundButton, textButton, W } from "./ui";
 
 export interface MenuEvents {
   play(fresh: boolean): void;
@@ -47,7 +47,7 @@ export class Menu extends Container {
     item(b.game_adventure || "Кампания", 147, 186, 155, () => void this.adventure());
     item(b.options || "Опции", 180, 239, 96, () => this.events.options());
     item(b.menu_highscores || "Результаты", 130, 293, 201, () => this.events.highscores());
-    item(b.menu_exit || "Выйти", 174, 349, 109, () => toast(this.overlay, "Закройте вкладку или приложение"));
+    // «Выйти» убрано: в браузере и PWA игра сама закрыться не может (табличка в картинке меню остаётся пустой)
     this.addChild(this.overlay);
   }
 
