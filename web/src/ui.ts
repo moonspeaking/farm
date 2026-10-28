@@ -5,18 +5,29 @@ import { FontName, PopLabel, PopOptions, rgb } from "./popfont";
 export const W = 800;
 export const H = 600;
 
-let loaded: string[] = [];
+const loaded = new Set<string>();
+let sharp = false;
 
+/** Загружает картинки, которых ещё нет (повторный вызов с теми же именами ничего не делает). */
 export async function loadImages(names: string[], onProgress?: (fraction: number) => void) {
-  await Assets.load(names.map((n) => ({ alias: `img:${n}`, src: `img/${n}.webp` })), onProgress);
-  loaded = names;
+  const fresh = names.filter((n) => !loaded.has(n));
+  if (!fresh.length) return void onProgress?.(1);
+  await Assets.load(fresh.map((n) => ({ alias: `img:${n}`, src: `img/${n}.webp` })), onProgress);
+  for (const n of fresh) {
+    loaded.add(n);
+    if (sharp) tex(n).source.scaleMode = "nearest";
+  }
 }
+
+/** Все ли картинки уже загружены. */
+export const hasImages = (names: string[]) => names.every((n) => loaded.has(n));
 
 /**
  * Оригинал рисует картинки 1:1 с точечной выборкой (линейный фильтр включается только у масштабированных, 0x4e51d0),
  * поэтому остаётся резким; при крупном масштабе экрана берём точечную выборку и мы.
  */
 export function setSharp(on: boolean) {
+  sharp = on;
   for (const n of loaded) tex(n).source.scaleMode = on ? "nearest" : "linear";
 }
 

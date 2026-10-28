@@ -103,7 +103,10 @@ export interface Rules {
   product_storage: StorageLevel[];
   well: Place & { image_offset: [number, number]; pail: Place; delay: number; fill_time: number; water_capacity: number; price: number; pail_height: number };
   prices: { ridge: number; water: number };
+  /** Все картинки; при запуске грузятся только core_images, остальное — по локациям (location_images) при первом заходе. */
   images: string[];
+  core_images: string[];
+  location_images: Record<string, string[]>;
   quests: Record<string, Quest>;
   holders: Record<string, Place>;
   bugs: Record<string, BugDef>;

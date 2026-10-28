@@ -158,6 +158,47 @@ def walk_dialog(nodes):
             yield from walk_dialog(a["dialog"])
 
 
+def split_images(rules, bugs, names):
+    """Картинки делятся на общие (грузятся при запуске) и по локациям (подгружаются при первом заходе, экономит память):
+    спрайты вредителей волн локации, фон фермы и города, ящик, портреты держателей и говорящих. Робин и всё остальное — общие."""
+    def bug_images(name, seen):
+        if name in seen or name not in bugs:
+            return set()
+        seen.add(name)
+        b = bugs[name]
+        out = {f"bug_{b['folder']}_{a}_{d}" for a in b["anims"] for d in DIRECTIONS}
+        if b["items"]:
+            out.add(f"item_{b['items']}")
+        return out | (bug_images(b["reincorn"], seen) if b["reincorn"] else set())
+
+    def talkers(quests):
+        found = set()
+        for q in quests.values():
+            for sq in q["sub_quests"].values():
+                found |= {n["talker"] for n in walk_dialog(sq["dialog"]) if n.get("talker")}
+        return found
+
+    per = {}
+    for n in range(1, 5):
+        d = rules if n == 1 else rules["locations"][str(n)]
+        imgs = set()
+        for day in d["waves"]:
+            for grp in day:
+                for b in grp["bugs"]:
+                    imgs |= bug_images(b, set())
+        imgs |= {f"holder_{h}" for h in d["holders"]} | {f"talker_{t}" for t in talkers(d["quests"])}
+        imgs |= ({"bg", "town_bg", "box", "box_content", "box_mask"} if n == 1 else
+                 {f"farm_bg_{n}", f"town_bg_{n}", f"box_{n}", f"box_content_{n}", f"box_mask_{n}"})
+        per[str(n)] = imgs
+    helper = {i for i in names if i.startswith("bug_helper_")}
+    only = set().union(*per.values()) - helper
+    # то, что нужно любой локации (общие ресурсы вроде talker_hero), остаётся общим
+    shared = set.intersection(*per.values())
+    only -= shared
+    core = sorted((set(names) | {"comics_clean"}) - only)
+    return core, {k: sorted((v & set(names)) - set(core)) for k, v in per.items()}
+
+
 def conditions(el):
     return [{"type": c.tag, **c.attrib} for c in (el if el is not None else [])]
 
@@ -574,7 +615,7 @@ def main():
     for h in set(holders).union(*(set(loc["holders"]) for loc in rules["locations"].values())):
         if (data_dir / f"game/towns/quests/{h}.jpg").exists():
             names[f"holder_{h}"] = f"game/towns/quests/{h}"
-    for n in range(1, 5):
+    for n in range(2, 5):  # у локации 1 свои имена (bg, town_bg, box…) из IMAGES
         names[f"farm_bg_{n}"] = f"game/farms/location_{n}"
         names[f"town_bg_{n}"] = f"game/towns/location_{n}"
         names[f"box_{n}"] = f"game/farms/product_storage/farm_{n}_storage_1"
@@ -606,6 +647,7 @@ def main():
     subprocess.run([sys.executable, str(Path(__file__).with_name("make_comics_clean.py")),
                     str(out_img / "comics.webp"), str(out_img / "comics_clean.webp")], check=True)
     rules["images"] = sorted([*names, "comics_clean"])
+    rules["core_images"], rules["location_images"] = split_images(rules, bugs, names)
     rules["audio"] = export_audio(data_dir, web)
     # таблица рекордов по умолчанию: файл объявлен как windows-1251, но записан в cp866
     scores = (xml_dir / "ru" / "default_scores_ru.xml").read_bytes().decode("cp866")

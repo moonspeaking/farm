@@ -13,7 +13,7 @@ import { Tutorial } from "./tutorial";
 import { WorldMap } from "./worldmap";
 import { loadFonts } from "./popfont";
 import { aboutScreen, gameMenu, highscoresScreen, optionsScreen, pauseOverlay, recordScore } from "./screens";
-import { H, loadImages, setSharp, toast, W } from "./ui";
+import { COLOR, H, hasImages, loadImages, pop, setSharp, toast, W } from "./ui";
 
 async function main() {
   const app = new Application();
@@ -29,7 +29,7 @@ async function main() {
   const part = { img: 0, snd: 0, rest: 0 };
   const report = () => loader?.set(0.7 * part.img + 0.2 * part.snd + 0.1 * part.rest);
   await Promise.all([
-    loadImages(rules.images, (f) => ((part.img = f), report())),
+    loadImages(rules.core_images, (f) => ((part.img = f), report())),
     loadFonts().then(() => ((part.rest += 0.5), report())),
     loadParticles().then(() => ((part.rest += 0.5), report())),
     audio.load(rules.audio, (f) => ((part.snd = f), report())),
@@ -82,6 +82,24 @@ async function main() {
     for (const c of world.children) if (c !== frame && c !== worldTut) c.visible = c === scene;
   };
 
+  /** Картинки локации n (вредители, фоны, портреты) грузятся при первом заходе — так в памяти нет неиспользуемых локаций. */
+  const ensureLocation = async (n: number) => {
+    const names = rules.location_images[String(n)] ?? [];
+    if (hasImages(names)) return;
+    const layer = new Container();
+    layer.addChild(new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.7 }));
+    layer.eventMode = "static";
+    const label = pop("Идет загрузка...", "TC4_16_en", COLOR.white, { align: "center" });
+    label.position.set(W / 2, H / 2 - 12);
+    layer.addChild(label);
+    world.addChild(layer);
+    try {
+      await loadImages(names);
+    } finally {
+      layer.destroy({ children: true });
+    }
+  };
+
   /** Создаёт ферму и город локации n (игра уже переключена на неё). */
   const build = (g: Game, n: number) => {
     if (farms[n]) return;
@@ -121,7 +139,15 @@ async function main() {
   };
 
   /** Переход в локацию n: ферма текущей сохраняется, состояние игры переключается. */
-  const enter = (g: Game, n: number, scene: "farm" | "town") => {
+  let entering = false;
+  const enter = async (g: Game, n: number, scene: "farm" | "town") => {
+    if (entering) return;
+    entering = true;
+    try {
+      await ensureLocation(n);
+    } finally {
+      entering = false;
+    }
     curFarm()?.persist();
     g.switchLocation(n);
     build(g, n);
@@ -136,35 +162,37 @@ async function main() {
     options: () => optionsScreen(world, rules, () => undefined),
     highscores: () => highscoresScreen(world, rules, () => undefined),
     about: () => void aboutScreen(world, rules),
-    play: (fresh) => {
-      for (const f of Object.values(farms)) f.destroy({ children: true });
-      for (const t of Object.values(towns)) t.destroy({ children: true });
-      worldMap?.destroy({ children: true });
-      for (const k of Object.keys(farms)) delete farms[Number(k)];
-      for (const k of Object.keys(towns)) delete towns[Number(k)];
-      if (fresh) Game.clearSave();
-      const g = new Game(rules);
-      if (!fresh) g.load();
-      game = g;
-      worldTut?.destroy({ children: true });
-      worldTut = new Tutorial(rules, g, () => audio.options.warnings);
-      build(g, g.loc);
-      worldMap = new WorldMap(rules, g, {
-        openTown: (n) => enter(g, n, "town"),
-        openFarm: (n) => enter(g, n, "farm"),
-        close: () => show(towns[g.loc]),
-        hasQuests: (n) => !towns[n] || towns[n].hasQuests(),
-      }, worldTut);
-      world.addChild(worldMap, worldTut);
-      audio.playMusic("game");
-      // новая игра начинается в городе: слуга ждёт Айрис с письмом (квест old_servant)
-      show(fresh ? towns[g.loc] : farms[g.loc]);
-      if (fresh) towns[g.loc].entered();
-    },
+    play: (fresh) => void start(fresh),
   });
+  const start = async (fresh: boolean) => {
+    if (fresh) Game.clearSave();
+    const g = new Game(rules);
+    if (!fresh) g.load();
+    await ensureLocation(g.loc);
+    for (const f of Object.values(farms)) f.destroy({ children: true });
+    for (const t of Object.values(towns)) t.destroy({ children: true });
+    worldMap?.destroy({ children: true });
+    for (const k of Object.keys(farms)) delete farms[Number(k)];
+    for (const k of Object.keys(towns)) delete towns[Number(k)];
+    game = g;
+    worldTut?.destroy({ children: true });
+    worldTut = new Tutorial(rules, g, () => audio.options.warnings);
+    build(g, g.loc);
+    worldMap = new WorldMap(rules, g, {
+      openTown: (n) => enter(g, n, "town"),
+      openFarm: (n) => enter(g, n, "farm"),
+      close: () => show(towns[g.loc]),
+      hasQuests: (n) => !towns[n] || towns[n].hasQuests(),
+    }, worldTut);
+    world.addChild(worldMap, worldTut);
+    audio.playMusic("game");
+    // новая игра начинается в городе: слуга ждёт Айрис с письмом (квест old_servant)
+    show(fresh ? towns[g.loc] : farms[g.loc]);
+    if (fresh) towns[g.loc].entered();
+  };
   world.addChild(menu);
   show(menu);
-  if (import.meta.env.DEV) Object.assign(window, { __game: { app, get farm() { return curFarm(); }, get town() { return curTown(); }, get game() { return game; }, get map() { return worldMap; }, enter: (n: number, scene: "farm" | "town") => game && enter(game, n, scene), menu } });
+  if (import.meta.env.DEV) Object.assign(window, { __game: { app, get farm() { return curFarm(); }, get town() { return curTown(); }, get game() { return game; }, get map() { return worldMap; }, enter: (n: number, scene: "farm" | "town") => game && enter(game, n, scene), menu, has: (names: string[]) => hasImages(names) } });
 
   // пауза: пробел — «Пауза», Esc и кнопка «Меню» — меню игры; пока висит любое из них, игровые таймеры (и Робин) стоят
   let paused: Container | null = null;
