@@ -1,5 +1,5 @@
 // «Ферма Айрис» (Magic Farm 1) на PixiJS: главное меню → ферма ⇄ город.
-import { Application, Container, Graphics } from "pixi.js";
+import { Application, ColorMatrixFilter, Container, Graphics } from "pixi.js";
 import { audio } from "./audio";
 import { installCursors } from "./cursors";
 import { loadParticles } from "./particles";
@@ -43,6 +43,16 @@ async function main() {
   const frame = new Graphics().rect(0, 0, W, H).fill(0xffffff);
   world.addChild(frame);
   world.mask = frame;
+  // цветокоррекция под вид оригинала. Подобрана по кадру оригинала (трава справа внизу фермы): средний цвет (0,206; 0,537; 0,076),
+  // насыщенность 0,872 против (0,246; 0,523; 0,105) и 0,823 у самих файлов — насыщенность +15 %, красный ×0,87, зелёный ×0,97, синий ×0,96
+  const grade = new ColorMatrixFilter();
+  grade.saturate(0.15, false);
+  for (let i = 0; i < 5; i++) {
+    grade.matrix[i] *= 0.87;
+    grade.matrix[5 + i] *= 0.97;
+    grade.matrix[10 + i] *= 0.96;
+  }
+  world.filters = [grade];
 
   let game: Game | null = null;
   // у каждой локации своя ферма, город и набор квестов; создаются при первом заходе
