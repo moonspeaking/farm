@@ -1029,7 +1029,9 @@ export class Farm extends Container {
     this.clearShop();
     this.top.visible = false;
     this.tutorial.hide();
+    this.hud.quiet = true;
     this.bouquets = new BouquetScreen(this.rules, this.game, () => {
+      this.hud.quiet = false;
       this.bouquets = null;
       this.top.visible = true;
       this.afterPurchase();

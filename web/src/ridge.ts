@@ -104,7 +104,7 @@ export class RidgeView extends Container {
   private day = false;
 
   /**
-   * Курсоры зависят от режима: в течение дня над растением и его грядкой — бочка («полив»), над пустой грядкой обычный;
+   * Курсоры зависят от режима: в течение дня над жаждущим растением и его грядкой — бочка («полив»), иначе обычный;
    * между днями пустая грядка — монетки («купить»), растение — обычный.
    */
   setDay(day: boolean) {
@@ -114,8 +114,10 @@ export class RidgeView extends Container {
 
   private updateCursors() {
     const planted = !!this.plant;
-    this.ground.cursor = this.day ? (planted ? "pour" : "default") : planted ? "default" : "buy";
-    if (this.plant) this.plant.view.cursor = this.day ? "pour" : "default";
+    // бочка днём — только над растением, которому нужен полив
+    const pour = this.day && this.thirsty;
+    this.ground.cursor = pour ? "pour" : this.day || planted ? "default" : "buy";
+    if (this.plant) this.plant.view.cursor = pour ? "pour" : "default";
   }
 
   /** Запас жизни: life из XML и умение «фермерство» (vegetation_life). */
@@ -205,6 +207,7 @@ export class RidgeView extends Container {
     p.thirstTotal = this.nextThirst(p.def);
     p.thirstIn = p.thirstTotal;
     this.updateRows();
+    this.updateCursors();
   }
 
   /** Конец дня: несобранные плоды пропадают, таймер появления следующего заводится заново. */
@@ -228,6 +231,7 @@ export class RidgeView extends Container {
     p.thirstTotal = this.nextThirst(p.def);
     p.thirstIn = p.thirstTotal;
     this.updateRows();
+    this.updateCursors();
     return true;
   }
 
@@ -346,7 +350,10 @@ export class RidgeView extends Container {
     // таймер жизни без воды идёт всегда; плоды растут независимо от жажды (0x44e520)
     const wasThirsty = this.thirsty;
     p.thirstIn -= dt;
-    if (!wasThirsty && this.thirsty) this.events.hungry(this);
+    if (!wasThirsty && this.thirsty) {
+      this.events.hungry(this);
+      this.updateCursors();
+    }
     if (p.thirstIn <= 0) {
       this.die("thirst");
       return;
