@@ -13,7 +13,7 @@ import { Tutorial } from "./tutorial";
 import { WorldMap } from "./worldmap";
 import { loadFonts } from "./popfont";
 import { aboutScreen, gameMenu, highscoresScreen, optionsScreen, pauseOverlay, recordScore } from "./screens";
-import { COLOR, H, hasImages, loadImages, pop, setSharp, toast, W } from "./ui";
+import { H, hasImages, loadImages, setSharp, toast, W } from "./ui";
 
 async function main() {
   const app = new Application();
@@ -82,21 +82,16 @@ async function main() {
     for (const c of world.children) if (c !== frame && c !== worldTut) c.visible = c === scene;
   };
 
-  /** Картинки локации n (вредители, фоны, портреты) грузятся при первом заходе — так в памяти нет неиспользуемых локаций. */
+  /** Картинки локации n (вредители, фоны, портреты) грузятся при первом заходе — так в памяти нет неиспользуемых локаций; на это время виден экран загрузки. */
   const ensureLocation = async (n: number) => {
     const names = rules.location_images[String(n)] ?? [];
     if (hasImages(names)) return;
-    const layer = new Container();
-    layer.addChild(new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.7 }));
-    layer.eventMode = "static";
-    const label = pop("Идет загрузка...", "TC4_16_en", COLOR.white, { align: "center" });
-    label.position.set(W / 2, H / 2 - 12);
-    layer.addChild(label);
-    world.addChild(layer);
+    const screen = (window as unknown as { __loader?: { show(): void; set(p: number): void; done(): void } }).__loader;
+    screen?.show();
     try {
-      await loadImages(names);
+      await loadImages(names, (f) => screen?.set(f));
     } finally {
-      layer.destroy({ children: true });
+      screen?.done();
     }
   };
 

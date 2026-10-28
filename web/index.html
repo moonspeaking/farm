@@ -35,6 +35,7 @@
         var bug = new Image();
         bug.src = "img/bug_" + bugName + "_move_right.webp";
         var target = 0, shown = 0, alive = true, t0 = performance.now();
+        var el = document.getElementById("loading");
         function resize() {
           var d = window.devicePixelRatio || 1;
           cv.width = innerWidth * d;
@@ -74,15 +75,26 @@
         }
         requestAnimationFrame(frame);
         window.__loader = {
+          /** Показывает экран снова (загрузка следующей локации): прогресс с нуля. */
+          show: function () {
+            target = 0;
+            shown = 0;
+            t0 = performance.now();
+            el.style.display = "block";
+            resize();
+            if (!alive) {
+              alive = true;
+              requestAnimationFrame(frame);
+            }
+          },
           /** Доля загрузки 0…1. */
           set: function (p) { target = Math.max(target, Math.min(1, p)); },
-          /** Загрузка закончена: дорисовываем 100 % и убираем экран. */
+          /** Загрузка закончена: дорисовываем 100 % и прячем экран. */
           done: function () {
             target = 1;
             setTimeout(function () {
               alive = false;
-              var el = document.getElementById("loading");
-              if (el) el.remove();
+              el.style.display = "none";
             }, 350);
           },
           fail: function (text) {
