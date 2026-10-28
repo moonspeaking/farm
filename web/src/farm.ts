@@ -862,7 +862,8 @@ export class Farm extends Container {
     // нечего покупать (бочки полны) и нечего продавать (нет плодов и собранных букетов) — кнопок нет
     if (g.water < g.waterMax) {
       const water = shopButton("medium", fmt(t.buttons.shop_button_buy_water ?? "Купить\nВоду"), null, () => this.openBuyWater());
-      add(water, this.rules.shop_positions.buy_water[0] + 50, this.rules.shop_positions.buy_water[1] + 30);
+      // в XML (433; 32), но «Начать День» сдвинута влево от часов и кнопка заходила бы под неё — «Купить Воду» сдвинута левее на 32 px
+      add(water, this.rules.shop_positions.buy_water[0] + 50 - 32, this.rules.shop_positions.buy_water[1] + 30);
     }
     if (g.storageCount() > 0 || g.bouquets.orders.some((o) => o.placed.some(Boolean))) {
       const sell = shopButton("medium", fmt(t.buttons.shop_button_sell_prod ?? "Продать\nПлоды"), null, () => this.openBouquets());
