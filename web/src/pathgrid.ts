@@ -128,3 +128,22 @@ export function wanderPath(grid: PathGrid, from: Cell): Cell[] | null {
   }
   return null;
 }
+
+/** Ближайшая проходимая клетка к цели: кольца радиуса 0…maxR, в кольце — 8 клеток в порядке из exe (0x41a350: вниз, влево, вправо, вверх, затем углы). */
+export function cellNear(grid: PathGrid, [cx, cy]: Cell, maxR = 3): Cell | null {
+  for (let r = 0; r <= maxR; r++) {
+    const ring: Cell[] = [[cx, cy + r], [cx - r, cy], [cx + r, cy], [cx, cy - r], [cx - r, cy + r], [cx + r, cy + r], [cx - r, cy - r], [cx + r, cy - r]];
+    for (const c of ring) if (grid.walkable(c[0], c[1])) return c;
+  }
+  return null;
+}
+
+/** Клетка, с которой начинается путь: клетка под точкой (x, y), а если она занята (грядкой) — ближайшая свободная. */
+export function startCellOf(grid: PathGrid, x: number, y: number): Cell {
+  const [cx, cy] = grid.cellOf(x, y);
+  if (grid.walkable(cx, cy)) return [cx, cy];
+  for (let r = 1; r < 12; r++)
+    for (let dx = -r; dx <= r; dx++)
+      for (let dy = -r; dy <= r; dy++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && grid.walkable(cx + dx, cy + dy)) return [cx + dx, cy + dy];
+  return [cx, cy];
+}

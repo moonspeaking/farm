@@ -2,7 +2,7 @@
 import { AnimatedSprite, Container, Rectangle, Sprite, Texture, type Ticker } from "pixi.js";
 import { audio } from "./audio";
 import { IconRow } from "./effects";
-import { CELL_H, CELL_W, type Cell, type PathGrid, pathToPlant, wanderPath } from "./pathgrid";
+import { CELL_H, CELL_W, type Cell, cellNear, type PathGrid, pathToPlant, startCellOf, wanderPath } from "./pathgrid";
 import type { RidgeView } from "./ridge";
 import type { BugDef, Rules } from "./rules";
 import type { Game } from "./state";
@@ -213,13 +213,7 @@ export class Bug extends Actor {
   }
 
   private startCell(grid: PathGrid): Cell {
-    const [cx, cy] = grid.cellOf(this.x, this.y);
-    if (grid.walkable(cx, cy)) return [cx, cy];
-    // арена занята (например, грядкой) — ближайшая свободная клетка
-    for (let r = 1; r < 12; r++)
-      for (let dx = -r; dx <= r; dx++)
-        for (let dy = -r; dy <= r; dy++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && grid.walkable(cx + dx, cy + dy)) return [cx + dx, cy + dy];
-    return [cx, cy];
+    return startCellOf(grid, this.x, this.y);
   }
 
   private chooseTarget() {
@@ -285,7 +279,12 @@ export class Bug extends Actor {
  */
 export class Helper extends Actor {
   private cooldown = 0;
-  private task: { kind: "pour" | "product"; ridge: RidgeView } | { kind: "attack"; bug: Bug } | { kind: "walk"; x: number; y: number; left: number } | null = null;
+  private task: { kind: "pour" | "product"; ridge: RidgeView } | { kind: "attack"; bug: Bug } | { kind: "walk"; left: number } | null = null;
+  /** Путь по сетке к цели текущей задачи; клетка цели при построении (для атаки — чтобы перестроить, когда вредитель сдвинулся); паузы. */
+  private path: Cell[] = [];
+  private planned: Cell = [0, 0];
+  private retry = 0;
+  private replan = 0;
   private readonly icon: Sprite;
 
   /** Робин летает над растениями и вредителями — рисуется поверх всего на ферме. */
@@ -308,69 +307,87 @@ export class Helper extends Actor {
     const h = this.rules.helper;
     this.advance(dt);
     this.cooldown = Math.max(0, this.cooldown - dt);
-    // exe (0x45a260): задача идёт, пока не «закончена»; прогулка кончается через 1 с или по прибытии (0x45a5e0) — тогда выбор заново
-    if (this.task?.kind === "walk") {
-      this.task.left -= dt;
+    this.retry -= dt;
+    this.replan -= dt;
+    // exe (0x45a260): задача идёт, пока не «закончена»; когда её нет или она закончилась — выбор цели заново (0x459420)
+    const task = this.task;
+    if (!task) {
       this.showIcon(null);
-      const w = this.task;
-      const arrived = Math.hypot(w.x - this.x, w.y - this.y) <= 3;
-      if (!arrived) this.fly(w.x, w.y, dt);
-      if (w.left > 0 && !arrived) return;
-      // выбор цели при законченной прогулке: нашлось дело — берём; нет — идём к той же точке ещё секунду или выбираем новую
-      this.task = this.pickTask(bugs, ridges) ?? (arrived ? this.newWalk(grid()) : { ...w, left: 1 });
+      if (this.retry > 0) return this.play("stand", 0, 1);
+      return this.begin(this.pickTask(bugs, ridges) ?? this.newWalk(grid()), grid);
+    }
+    if (task.kind === "walk") {
+      // прогулка (0x45a5d0 / 0x45a5e0): таймер 1 с, закончена по таймеру или когда путь пройден
+      task.left -= dt;
+      this.showIcon(null);
+      this.follow(dt, grid);
+      const arrived = !this.path.length;
+      if (task.left > 0 && !arrived) return;
+      // нашлось дело — берём; нет — идём к той же точке ещё секунду (таймер снова 1,0) или выбираем новую
+      const next = this.pickTask(bugs, ridges);
+      if (next) return this.begin(next, grid);
+      if (arrived) return this.begin(this.newWalk(grid()), grid);
+      task.left = 1;
       return;
     }
-    if (!this.task) {
-      // без дела Робин не стоит: выбирает дело, а если ничего не выпало — летит в случайную проходимую точку (HelperTargetWalk)
-      this.task = this.pickTask(bugs, ridges) ?? this.newWalk(grid());
-      if (!this.task) this.play("stand", 0, 1);
-      return;
-    }
-    if (this.task?.kind === "attack") {
-      const bug = this.task.bug;
+    if (task.kind === "attack") {
+      const bug = task.bug;
       if (bug.dead || bug.destroyed) {
         this.task = null;
         return;
       }
       this.showIcon("attack");
-      const d = Math.hypot(bug.x - this.x, bug.y - this.y);
-      if (d > h.attack_range * 0.8) return this.fly(bug.x, bug.y - 30, dt);
-      this.play("stand", bug.x - this.x, 0);
-      if (this.cooldown <= 0) {
-        // умение Робина: к атаке прибавляется helper_attack, период делится на (1 + helper_attack_speed)
-        bug.hit(h.attack + this.game.bonus("helper_attack", "helper_attack"), true);
-        this.cooldown = h.attack_period / (1 + this.game.bonus("helper_attack", "helper_attack_speed"));
-      }
-      return;
-    }
-    if (this.task) {
-      const r = this.task.ridge;
-      const valid = this.task.kind === "pour" ? r.thirsty : r.readyProduct() >= 0;
-      if (!valid) {
-        this.task = null;
+      const d = Math.hypot(bug.x - this.x, bug.y - 30 - this.y);
+      if (d <= h.attack_range * 0.8) {
+        // цель в пределах attack_range — стоит и бьёт
+        this.path = [];
+        this.play("stand", bug.x - this.x, 0);
+        if (this.cooldown <= 0) {
+          // умение Робина: к атаке прибавляется helper_attack, период делится на (1 + helper_attack_speed)
+          bug.hit(h.attack + this.game.bonus("helper_attack", "helper_attack"), true);
+          this.cooldown = h.attack_period / (1 + this.game.bonus("helper_attack", "helper_attack_speed"));
+        }
         return;
       }
-      this.showIcon(this.task.kind);
-      const [x, y] = r.base();
-      if (Math.hypot(x - this.x, y - 40 - this.y) > 12) return this.fly(x, y - 40, dt);
-      if (this.task.kind === "pour") {
-        onWater(r);
-        // PourAllBonus: у прокачанного Робина есть шанс полить сразу все жаждущие растения (бесплатно)
-        if (Math.random() < this.game.bonus("helper_pour", "helper_pour")) {
-          for (const o of ridges) if (o !== r && o.thirsty) onWater(o);
-        }
-      } else {
-        r.collect(r.readyProduct(), false);
-        // шанс собрать сразу все созревшие плоды, пока есть место на складе
-        if (Math.random() < this.game.bonus("helper_product", "helper_product")) {
-          for (const o of ridges) {
-            while (o.readyProduct() >= 0 && this.game.storageCount() < this.game.storageMax) o.collect(o.readyProduct(), false);
-          }
+      // вредитель ушёл в другую клетку (или путь кончился) — путь строится заново
+      const cell = grid().cellOf(bug.x, bug.y);
+      if (this.replan <= 0 && (!this.path.length || this.planned[0] !== cell[0] || this.planned[1] !== cell[1])) {
+        this.replan = 0.3;
+        if (!this.plan(grid(), [bug.x, bug.y])) {
+          this.task = null;
+          this.retry = 0.5;
+          return;
         }
       }
+      this.follow(dt, grid);
+      return;
+    }
+    const r = task.ridge;
+    const valid = task.kind === "pour" ? r.thirsty : r.readyProduct() >= 0;
+    if (!valid) {
       this.task = null;
       return;
     }
+    this.showIcon(task.kind);
+    this.follow(dt, grid);
+    if (this.path.length) return;
+    // пришёл (путь пройден) — действие (0x45a2d0: при пустом пути)
+    if (task.kind === "pour") {
+      onWater(r);
+      // PourAllBonus: у прокачанного Робина есть шанс полить сразу все жаждущие растения (бесплатно)
+      if (Math.random() < this.game.bonus("helper_pour", "helper_pour")) {
+        for (const o of ridges) if (o !== r && o.thirsty) onWater(o);
+      }
+    } else {
+      r.collect(r.readyProduct(), false);
+      // шанс собрать сразу все созревшие плоды, пока есть место на складе
+      if (Math.random() < this.game.bonus("helper_product", "helper_product")) {
+        for (const o of ridges) {
+          while (o.readyProduct() >= 0 && this.game.storageCount() < this.game.storageMax) o.collect(o.readyProduct(), false);
+        }
+      }
+    }
+    this.task = null;
   }
 
   /** Каждый день Робин начинает с одного и того же места — у дома — и сразу летит по делам или гулять. */
@@ -379,12 +396,83 @@ export class Helper extends Actor {
     this.cooldown = 0;
   }
 
-  /** HelperTargetWalk (0x45a600): случайная ячейка поля, до 20 попыток найти проходимую; идёт к ней не дольше секунды. */
-  private newWalk(grid: PathGrid): { kind: "walk"; x: number; y: number; left: number } | null {
+  /** Начинает задачу: строит путь по сетке (как у вредителей); если пути нет, задача отбрасывается и выбор повторится через полсекунды. */
+  private begin(task: Helper["task"], grid: () => PathGrid) {
+    this.task = task;
+    if (!task) {
+      this.path = [];
+      this.retry = 0.5;
+      return;
+    }
+    if (task.kind === "walk") return; // путь уже построен в newWalk
+    this.path = [];
+    const target: [number, number] = task.kind === "attack" ? [task.bug.x, task.bug.y] : task.ridge.base();
+    if (!this.plan(grid(), target)) {
+      this.task = null;
+      this.retry = 0.5;
+    }
+  }
+
+  /** Путь к клетке рядом с целью (0x41a350 ищет свободную клетку в радиусе 3, 0x43b000 строит путь волной). */
+  private plan(grid: PathGrid, target: [number, number]) {
+    const goal = cellNear(grid, grid.cellOf(target[0], target[1]), 3);
+    if (!goal) return false;
+    const path = grid.path(startCellOf(grid, this.x, this.y), goal);
+    if (!path) return false;
+    this.path = path;
+    this.planned = grid.cellOf(target[0], target[1]);
+    return true;
+  }
+
+  /** Скорость полёта: speed из XML, у полива и сбора — с умением «скорость» (slot 4 задач, 0x45a4f0). */
+  private speed() {
+    const t = this.task;
+    const skill = t?.kind === "pour" ? this.game.bonus("helper_pour", "helper_pour_speed")
+      : t?.kind === "product" ? this.game.bonus("helper_product", "helper_product_speed") : 0;
+    return this.rules.helper.speed * (1 + skill);
+  }
+
+  /** Движение по путевым точкам (как у вредителей, 0x4b2a10): точка засчитывается, когда до неё остаётся меньше шага. */
+  private follow(dt: number, grid: () => PathGrid) {
+    if (!this.path.length) return;
+    const step = this.speed() * dt;
+    if (!grid().walkable(this.path[0][0], this.path[0][1])) {
+      // путь перекрыт (купили грядку, встал вредитель) — строится заново к той же цели
+      this.path = [];
+      const t = this.task;
+      if (t && t.kind !== "walk" && !this.plan(grid(), t.kind === "attack" ? [t.bug.x, t.bug.y] : t.ridge.base())) {
+        this.task = null;
+        this.retry = 0.5;
+      }
+      return;
+    }
+    const wp = () => [this.path[0][0] * CELL_W, this.path[0][1] * CELL_H] as const;
+    let [wx, wy] = wp();
+    let d = Math.hypot(wx - this.x, wy - this.y);
+    while (d < step) {
+      this.x = wx;
+      this.y = wy;
+      this.path.shift();
+      if (!this.path.length) return;
+      [wx, wy] = wp();
+      d = Math.hypot(wx - this.x, wy - this.y);
+    }
+    this.x += ((wx - this.x) / d) * step;
+    this.y += ((wy - this.y) / d) * step;
+    this.play("move", wx - this.x, wy - this.y);
+  }
+
+  /** HelperTargetWalk (0x45a600): случайная ячейка поля, до 20 попыток найти проходимую; путь к ней по сетке, идёт не дольше секунды за раз. */
+  private newWalk(grid: PathGrid): { kind: "walk"; left: number } | null {
     for (let i = 0; i < 20; i++) {
       const cx = Math.floor(Math.random() * grid.cols);
       const cy = Math.floor(Math.random() * grid.rows);
-      if (grid.walkable(cx, cy)) return { kind: "walk", x: (cx + 0.5) * CELL_W, y: (cy + 0.5) * CELL_H, left: 1 };
+      if (!grid.walkable(cx, cy)) continue;
+      const path = grid.path(startCellOf(grid, this.x, this.y), [cx, cy]);
+      if (path) {
+        this.path = path;
+        return { kind: "walk", left: 1 };
+      }
     }
     return null;
   }
@@ -392,6 +480,8 @@ export class Helper extends Actor {
   /** Между днями Робин отдыхает у дома (на экране его нет). */
   rest() {
     this.task = null;
+    this.path = [];
+    this.retry = 0;
     this.position.set(...this.home);
     this.showIcon(null);
     this.play("stand", 0, 1, true);
@@ -433,18 +523,6 @@ export class Helper extends Actor {
   private showIcon(kind: "attack" | "pour" | "product" | null) {
     this.icon.visible = !!kind;
     if (kind) this.icon.texture = tex(`helper_${kind}_icon`);
-  }
-
-  private fly(x: number, y: number, dt: number) {
-    const dx = x - this.x;
-    const dy = y - this.y;
-    const d = Math.hypot(dx, dy) || 1;
-    const skillSpeed = this.task?.kind === "pour" ? this.game.bonus("helper_pour", "helper_pour_speed")
-      : this.task?.kind === "product" ? this.game.bonus("helper_product", "helper_product_speed") : 0;
-    const step = Math.min(d, this.rules.helper.speed * (1 + skillSpeed) * dt);
-    this.x += (dx / d) * step;
-    this.y += (dy / d) * step;
-    this.play("move", dx, dy);
   }
 }
 

@@ -14,3 +14,4 @@ web/android/app/src/main/assets/capacitor.config.json
 web/android/app/src/main/assets/capacitor.plugins.json
 __pycache__/
 *.pyc
+tools/ghidra-work/
