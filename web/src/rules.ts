@@ -32,6 +32,8 @@ export interface Place {
 
 export interface StorageLevel extends Place {
   object: string;
+  /** Левый верх препятствия объекта (position — где рисуется картинка). */
+  obstacle: [number, number];
   capacity: number;
   price: number;
   /** На сколько пикселей опускается содержимое при пустой ёмкости (progress_height). */

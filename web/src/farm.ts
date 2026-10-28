@@ -499,8 +499,8 @@ export class Farm extends Container {
       grid.add(this.rules.well);
       grid.add(this.rules.well.pail);
     }
-    this.rules.water_storage.slice(0, g.barrels).forEach((l) => grid.add(l));
-    this.rules.product_storage.slice(0, g.boxes).forEach((l) => grid.add(l));
+    this.rules.water_storage.slice(0, g.barrels).forEach((l) => grid.add({ position: l.obstacle, dimensions: l.dimensions }));
+    this.rules.product_storage.slice(0, g.boxes).forEach((l) => grid.add({ position: l.obstacle, dimensions: l.dimensions }));
     for (const r of this.ridges) grid.add(r.place);
     // другие вредители занимают клетки вокруг следующей путевой точки (0x4b2290 → 0x446d40), свою клетку вредитель освобождает
     for (const b of this.bugs) if (b !== self && !b.dead) grid.addUnit(...b.footprint());

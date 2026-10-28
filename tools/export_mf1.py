@@ -348,9 +348,11 @@ def export_location(n, props, xml_dir, items_root, ru, vegetations, products, bu
                for o in farm.iter("dynamic_obstacle")}
 
     def levels(tag):
-        return [{"object": lv.attrib["object"], "position": vec(lv.attrib["position"]),
+        # position — где рисуется картинка (level), obstacle — левый верх препятствия объекта (для сетки вредителей), dimensions — его размер
+        return [{**objects[lv.attrib["object"]], "object": lv.attrib["object"], "position": vec(lv.attrib["position"]),
+                 "obstacle": objects[lv.attrib["object"]]["position"],
                  "capacity": int(lv.attrib["capacity"]), "price": int(lv.attrib["price"]),
-                 "progress_height": int(lv.attrib["progress_height"]), **objects[lv.attrib["object"]]} for lv in farm.find(tag)]
+                 "progress_height": int(lv.attrib["progress_height"])} for lv in farm.find(tag)]
 
     well = items_root.find("items/wells/well_00").attrib
     waves, arrive = export_waves(props, props.find("bugs"), n)
@@ -440,9 +442,11 @@ def main():
                for o in farm.iter("dynamic_obstacle")}
 
     def levels(tag):
-        return [{"object": lv.attrib["object"], "position": vec(lv.attrib["position"]),
+        # position — где рисуется картинка (level), obstacle — левый верх препятствия объекта (для сетки вредителей), dimensions — его размер
+        return [{**objects[lv.attrib["object"]], "object": lv.attrib["object"], "position": vec(lv.attrib["position"]),
+                 "obstacle": objects[lv.attrib["object"]]["position"],
                  "capacity": int(lv.attrib["capacity"]), "price": int(lv.attrib["price"]),
-                 "progress_height": int(lv.attrib["progress_height"]), **objects[lv.attrib["object"]]} for lv in farm.find(tag)]
+                 "progress_height": int(lv.attrib["progress_height"])} for lv in farm.find(tag)]
 
     items_text = (xml_dir / "locations" / "items.xml").read_bytes().decode("cp1251")
     items_root = ET.fromstring("<r>" + re.sub(r"^<\?xml[^>]*\?>", "", items_text.strip()) + "</r>")

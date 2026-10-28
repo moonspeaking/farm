@@ -1749,14 +1749,32 @@
  ],
  "water_storage": [
   {
-   "object": "barrel_1_1",
    "position": [
+    430.0,
+    84.0
+   ],
+   "dimensions": [
+    40.0,
+    50.0
+   ],
+   "image_offset": [
+    0.0,
+    0.0
+   ],
+   "object": "barrel_1_1",
+   "obstacle": [
     460.0,
     109.0
    ],
    "capacity": 8,
    "price": 0,
-   "progress_height": 15,
+   "progress_height": 15
+  },
+  {
+   "position": [
+    380.0,
+    84.0
+   ],
    "dimensions": [
     40.0,
     50.0
@@ -1764,17 +1782,21 @@
    "image_offset": [
     0.0,
     0.0
-   ]
-  },
-  {
+   ],
    "object": "barrel_1_2",
-   "position": [
+   "obstacle": [
     410.0,
     109.0
    ],
    "capacity": 10,
    "price": 75,
-   "progress_height": 15,
+   "progress_height": 15
+  },
+  {
+   "position": [
+    330.0,
+    84.0
+   ],
    "dimensions": [
     40.0,
     50.0
@@ -1782,37 +1804,45 @@
    "image_offset": [
     0.0,
     0.0
-   ]
-  },
-  {
+   ],
    "object": "barrel_1_3",
-   "position": [
+   "obstacle": [
     360.0,
     109.0
    ],
    "capacity": 12,
    "price": 250,
-   "progress_height": 15,
+   "progress_height": 15
+  }
+ ],
+ "product_storage": [
+  {
+   "position": [
+    545.0,
+    130.0
+   ],
    "dimensions": [
-    40.0,
+    85.0,
     50.0
    ],
    "image_offset": [
     0.0,
     0.0
-   ]
-  }
- ],
- "product_storage": [
-  {
+   ],
    "object": "box_1_1",
-   "position": [
+   "obstacle": [
     555.0,
     140.0
    ],
    "capacity": 15,
    "price": 0,
-   "progress_height": 12,
+   "progress_height": 12
+  },
+  {
+   "position": [
+    475.0,
+    135.0
+   ],
    "dimensions": [
     85.0,
     50.0
@@ -1820,17 +1850,21 @@
    "image_offset": [
     0.0,
     0.0
-   ]
-  },
-  {
+   ],
    "object": "box_1_2",
-   "position": [
+   "obstacle": [
     485.0,
     145.0
    ],
    "capacity": 20,
    "price": 100,
-   "progress_height": 12,
+   "progress_height": 12
+  },
+  {
+   "position": [
+    525.0,
+    170.0
+   ],
    "dimensions": [
     85.0,
     50.0
@@ -1838,25 +1872,15 @@
    "image_offset": [
     0.0,
     0.0
-   ]
-  },
-  {
+   ],
    "object": "box_1_3",
-   "position": [
+   "obstacle": [
     535.0,
     180.0
    ],
    "capacity": 25,
    "price": 300,
-   "progress_height": 12,
-   "dimensions": [
-    85.0,
-    50.0
-   ],
-   "image_offset": [
-    0.0,
-    0.0
-   ]
+   "progress_height": 12
   }
  ],
  "well": {
@@ -6055,14 +6079,32 @@
    ],
    "water_storage": [
     {
-     "object": "barrel_1_1",
      "position": [
+      195.0,
+      135.0
+     ],
+     "dimensions": [
+      40.0,
+      50.0
+     ],
+     "image_offset": [
+      0.0,
+      0.0
+     ],
+     "object": "barrel_1_1",
+     "obstacle": [
       225.0,
       160.0
      ],
      "capacity": 12,
      "price": 0,
-     "progress_height": 15,
+     "progress_height": 15
+    },
+    {
+     "position": [
+      138.0,
+      140.0
+     ],
      "dimensions": [
       40.0,
       50.0
@@ -6070,17 +6112,21 @@
      "image_offset": [
       0.0,
       0.0
-     ]
-    },
-    {
+     ],
      "object": "barrel_1_2",
-     "position": [
+     "obstacle": [
       168.0,
       165.0
      ],
      "capacity": 14,
      "price": 1000,
-     "progress_height": 15,
+     "progress_height": 15
+    },
+    {
+     "position": [
+      113.0,
+      167.0
+     ],
      "dimensions": [
       40.0,
       50.0
@@ -6088,37 +6134,45 @@
      "image_offset": [
       0.0,
       0.0
-     ]
-    },
-    {
+     ],
      "object": "barrel_1_3",
-     "position": [
+     "obstacle": [
       143.0,
       192.0
      ],
      "capacity": 16,
      "price": 2500,
-     "progress_height": 15,
+     "progress_height": 15
+    }
+   ],
+   "product_storage": [
+    {
+     "position": [
+      255.0,
+      230.0
+     ],
      "dimensions": [
-      40.0,
+      85.0,
       50.0
      ],
      "image_offset": [
       0.0,
       0.0
-     ]
-    }
-   ],
-   "product_storage": [
-    {
+     ],
      "object": "box_2_1",
-     "position": [
+     "obstacle": [
       255.0,
       240.0
      ],
      "capacity": 25,
      "price": 1500,
-     "progress_height": 12,
+     "progress_height": 12
+    },
+    {
+     "position": [
+      185.0,
+      235.0
+     ],
      "dimensions": [
       85.0,
       50.0
@@ -6126,17 +6180,21 @@
      "image_offset": [
       0.0,
       0.0
-     ]
-    },
-    {
+     ],
      "object": "box_2_2",
-     "position": [
+     "obstacle": [
       185.0,
       245.0
      ],
      "capacity": 25,
      "price": 2500,
-     "progress_height": 12,
+     "progress_height": 12
+    },
+    {
+     "position": [
+      235.0,
+      270.0
+     ],
      "dimensions": [
       85.0,
       50.0
@@ -6144,25 +6202,15 @@
      "image_offset": [
       0.0,
       0.0
-     ]
-    },
-    {
+     ],
      "object": "box_2_3",
-     "position": [
+     "obstacle": [
       235.0,
       280.0
      ],
      "capacity": 25,
      "price": 3000,
-     "progress_height": 12,
-     "dimensions": [
-      85.0,
-      50.0
-     ],
-     "image_offset": [
-      0.0,
-      0.0
-     ]
+     "progress_height": 12
     }
    ],
    "well": {
@@ -8183,14 +8231,32 @@
    ],
    "water_storage": [
     {
-     "object": "barrel_1_1",
      "position": [
+      195.0,
+      135.0
+     ],
+     "dimensions": [
+      40.0,
+      50.0
+     ],
+     "image_offset": [
+      0.0,
+      0.0
+     ],
+     "object": "barrel_1_1",
+     "obstacle": [
       225.0,
       160.0
      ],
      "capacity": 10,
      "price": 0,
-     "progress_height": 15,
+     "progress_height": 15
+    },
+    {
+     "position": [
+      138.0,
+      140.0
+     ],
      "dimensions": [
       40.0,
       50.0
@@ -8198,17 +8264,21 @@
      "image_offset": [
       0.0,
       0.0
-     ]
-    },
-    {
+     ],
      "object": "barrel_1_2",
-     "position": [
+     "obstacle": [
       168.0,
       165.0
      ],
      "capacity": 10,
      "price": 55,
-     "progress_height": 15,
+     "progress_height": 15
+    },
+    {
+     "position": [
+      173.0,
+      167.0
+     ],
      "dimensions": [
       40.0,
       50.0
@@ -8216,37 +8286,45 @@
      "image_offset": [
       0.0,
       0.0
-     ]
-    },
-    {
+     ],
      "object": "barrel_1_3",
-     "position": [
+     "obstacle": [
       203.0,
       192.0
      ],
      "capacity": 10,
      "price": 75,
-     "progress_height": 15,
+     "progress_height": 15
+    }
+   ],
+   "product_storage": [
+    {
+     "position": [
+      599.0,
+      450.0
+     ],
      "dimensions": [
-      40.0,
+      85.0,
       50.0
      ],
      "image_offset": [
       0.0,
       0.0
-     ]
-    }
-   ],
-   "product_storage": [
-    {
+     ],
      "object": "box_3_1",
-     "position": [
+     "obstacle": [
       609.0,
       460.0
      ],
      "capacity": 20,
      "price": 150,
-     "progress_height": 12,
+     "progress_height": 12
+    },
+    {
+     "position": [
+      529.0,
+      455.0
+     ],
      "dimensions": [
       85.0,
       50.0
@@ -8254,17 +8332,21 @@
      "image_offset": [
       0.0,
       0.0
-     ]
-    },
-    {
+     ],
      "object": "box_3_2",
-     "position": [
+     "obstacle": [
       539.0,
       465.0
      ],
      "capacity": 20,
      "price": 250,
-     "progress_height": 12,
+     "progress_height": 12
+    },
+    {
+     "position": [
+      579.0,
+      490.0
+     ],
      "dimensions": [
       85.0,
       50.0
@@ -8272,25 +8354,15 @@
      "image_offset": [
       0.0,
       0.0
-     ]
-    },
-    {
+     ],
      "object": "box_3_3",
-     "position": [
+     "obstacle": [
       589.0,
       500.0
      ],
      "capacity": 20,
      "price": 300,
-     "progress_height": 12,
-     "dimensions": [
-      85.0,
-      50.0
-     ],
-     "image_offset": [
-      0.0,
-      0.0
-     ]
+     "progress_height": 12
     }
    ],
    "well": {
@@ -9913,14 +9985,32 @@
    ],
    "water_storage": [
     {
-     "object": "barrel_1_1",
      "position": [
+      195.0,
+      235.0
+     ],
+     "dimensions": [
+      40.0,
+      50.0
+     ],
+     "image_offset": [
+      0.0,
+      0.0
+     ],
+     "object": "barrel_1_1",
+     "obstacle": [
       225.0,
       260.0
      ],
      "capacity": 10,
      "price": 0,
-     "progress_height": 15,
+     "progress_height": 15
+    },
+    {
+     "position": [
+      138.0,
+      240.0
+     ],
      "dimensions": [
       40.0,
       50.0
@@ -9928,17 +10018,21 @@
      "image_offset": [
       0.0,
       0.0
-     ]
-    },
-    {
+     ],
      "object": "barrel_1_2",
-     "position": [
+     "obstacle": [
       168.0,
       265.0
      ],
      "capacity": 10,
      "price": 500,
-     "progress_height": 15,
+     "progress_height": 15
+    },
+    {
+     "position": [
+      173.0,
+      267.0
+     ],
      "dimensions": [
       40.0,
       50.0
@@ -9946,37 +10040,45 @@
      "image_offset": [
       0.0,
       0.0
-     ]
-    },
-    {
+     ],
      "object": "barrel_1_3",
-     "position": [
+     "obstacle": [
       203.0,
       292.0
      ],
      "capacity": 10,
      "price": 750,
-     "progress_height": 15,
+     "progress_height": 15
+    }
+   ],
+   "product_storage": [
+    {
+     "position": [
+      545.0,
+      230.0
+     ],
      "dimensions": [
-      40.0,
+      85.0,
       50.0
      ],
      "image_offset": [
       0.0,
       0.0
-     ]
-    }
-   ],
-   "product_storage": [
-    {
+     ],
      "object": "box_4_1",
-     "position": [
+     "obstacle": [
       555.0,
       240.0
      ],
      "capacity": 20,
      "price": 0,
-     "progress_height": 12,
+     "progress_height": 12
+    },
+    {
+     "position": [
+      475.0,
+      235.0
+     ],
      "dimensions": [
       85.0,
       50.0
@@ -9984,17 +10086,21 @@
      "image_offset": [
       0.0,
       0.0
-     ]
-    },
-    {
+     ],
      "object": "box_4_2",
-     "position": [
+     "obstacle": [
       485.0,
       245.0
      ],
      "capacity": 20,
      "price": 2500,
-     "progress_height": 12,
+     "progress_height": 12
+    },
+    {
+     "position": [
+      525.0,
+      270.0
+     ],
      "dimensions": [
       85.0,
       50.0
@@ -10002,25 +10108,15 @@
      "image_offset": [
       0.0,
       0.0
-     ]
-    },
-    {
+     ],
      "object": "box_4_3",
-     "position": [
+     "obstacle": [
       535.0,
       280.0
      ],
      "capacity": 20,
      "price": 3000,
-     "progress_height": 12,
-     "dimensions": [
-      85.0,
-      50.0
-     ],
-     "image_offset": [
-      0.0,
-      0.0
-     ]
+     "progress_height": 12
     }
    ],
    "well": {
