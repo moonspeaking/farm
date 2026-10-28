@@ -40,7 +40,7 @@ export class Menu extends Container {
     this.addChild(image("menu_bg"));
     // пункты main_menu на деревянной табличке: шрифт rubius_30, цвет 255;255;100, при наведении 255;255;175
     const item = (text: string, x: number, y: number, w: number, onTap: () => void) => {
-      const l = textButton(text, onTap, "menu");
+      const l = textButton(text, onTap, "menu", w - 18); // надпись не шире таблички (поле w из XML — вместе с лозой по краям)
       l.position.set(x + w / 2, y + 20);
       this.addChild(l);
     };

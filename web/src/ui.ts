@@ -134,9 +134,15 @@ const STYLES = {
 };
 
 /** Текстовая кнопка оригинала без подложки (button_styles: цвет в покое и при наведении). */
-export function textButton(text: string, onTap: () => void, kind: keyof typeof STYLES = "normal"): PopLabel {
+export function textButton(text: string, onTap: () => void, kind: keyof typeof STYLES = "normal", maxWidth = 0): PopLabel {
   const s = STYLES[kind];
-  const t = pop(text, s.font, s.color, { align: "center" });
+  let t = pop(text, s.font, s.color, { align: "center" });
+  // надпись шире отведённого места — уменьшаем шрифт, чтобы она влезла в рамку
+  if (maxWidth > 0 && t.textWidth > maxWidth) {
+    const k = maxWidth / t.textWidth;
+    t.destroy();
+    t = pop(text, s.font, s.color, { align: "center", scale: k });
+  }
   t.anchor.set(0.5, 0.5);
   t.on("pointerover", () => t.setColor(s.active));
   t.on("pointerout", () => t.setColor(s.color));
