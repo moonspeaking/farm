@@ -371,22 +371,10 @@ export class Helper extends Actor {
     this.showIcon(task.kind);
     this.follow(dt, grid);
     if (this.path.length) return;
-    // пришёл (путь пройден) — действие (0x45a2d0: при пустом пути)
-    if (task.kind === "pour") {
-      onWater(r);
-      // PourAllBonus: у прокачанного Робина есть шанс полить сразу все жаждущие растения (бесплатно)
-      if (Math.random() < this.game.bonus("helper_pour", "helper_pour")) {
-        for (const o of ridges) if (o !== r && o.thirsty) onWater(o);
-      }
-    } else {
-      r.collect(r.readyProduct(), false);
-      // шанс собрать сразу все созревшие плоды, пока есть место на складе
-      if (Math.random() < this.game.bonus("helper_product", "helper_product")) {
-        for (const o of ridges) {
-          while (o.readyProduct() >= 0 && this.game.storageCount() < this.game.storageMax) o.collect(o.readyProduct(), false);
-        }
-      }
-    }
+    // пришёл (путь пройден) — действие при пустом списке путевых точек (0x45a2d0, 0x4570a0): полив только этого растения;
+    // сбор — всех спелых плодов на этом растении, пока в ящиках есть место (шанса «полить / собрать всё» в exe нет)
+    if (task.kind === "pour") onWater(r);
+    else while (r.readyProduct() >= 0 && this.game.storageCount() < this.game.storageMax) r.collect(r.readyProduct(), false);
     this.task = null;
   }
 
