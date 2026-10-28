@@ -54,13 +54,18 @@ export class LevelUp extends Container {
     this.box.position.set((W - 349) / 2 + 40, (H - 446) / 2);
     this.box.addChild(image("lu_back"));
 
-    // портреты в круглых окошках: girl (32; 30), helper (207; 29), 120×120
+    // портреты в круглых окошках (картинка 103 × 97 лежит в левом верхнем углу позиции XML — тогда круг совпадает с нарисованным в фоне):
+    // girl (32; 30), helper (207; 29)
     const girl = image("lu_girl");
-    girl.position.set(32 + (120 - 103) / 2, 30 + (120 - 97) / 2);
+    girl.position.set(32, 30);
     const helper = image("lu_helper");
-    helper.position.set(207 + (120 - 103) / 2, 29 + (120 - 97) / 2);
-    if (!helperEnabled) helper.tint = 0x808080;
-    this.box.addChild(girl, helper, this.marks);
+    helper.position.set(207, 29);
+    // Робин ещё не пришёл — его портрет притемнён кругом, а не всей квадратной картинкой
+    if (!helperEnabled) {
+      const dim = new Graphics().circle(207 + 51.5, 29 + 48.5, 43).fill({ color: 0x000000, alpha: 0.5 });
+      dim.eventMode = "none";
+      this.box.addChild(girl, helper, dim, this.marks);
+    } else this.box.addChild(girl, helper, this.marks);
 
     for (const skill of SKILLS) {
       const slot = SLOTS[skill];
