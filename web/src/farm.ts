@@ -138,6 +138,8 @@ export class Farm extends Container {
   private helper: Helper | null = null;
   /** Колодец: секунды до готовности следующего ведра. */
   /** Колодец (WellControl, 0x4afac0): пауза после использования и наполнение ведра в секундах (0 … fill_time). */
+  /** Серии быстрых действий: сбор и полив считаются отдельно. */
+  private readonly combo = { gather: 1, pour: 1 };
   private wellCooldown = 0;
   private wellProgress = 0;
   private endPrompt: Container | null = null;
@@ -319,12 +321,21 @@ export class Farm extends Container {
   private bonusEvent(kind: "gather" | "pour", seconds: number, x: number, y: number, baseExp: number) {
     const tier = BONUS_TIERS.find((t) => seconds < t.within);
     if (!tier) return baseExp;
-    this.showBonus(`fast_${kind}${tier.suffix}`, x, y);
+    // серия (HintLayer +0x78 у сбора, +0x7c у полива): начинается с 1, после каждого бонуса растёт; при N > 1 к названию добавляется « xN»
+    const n = this.combo[kind];
+    this.combo[kind] = n + 1;
+    this.showBonus(`fast_${kind}${tier.suffix}`, x, y, n);
     return baseExp * tier.mult;
   }
 
-  private showBonus(key: string, x: number, y: number) {
-    toast(this.ui, this.rules.texts.bonus_events[key] ?? key, x, y - 20, 0.85);
+  /** Окно быстрого действия закрылось, а плод не собран / растение не полито — серия начинается заново (0x49ef20). */
+  private windowMissed(kind: "gather" | "pour") {
+    this.combo[kind] = 1;
+  }
+
+  private showBonus(key: string, x: number, y: number, count = 1) {
+    const name = this.rules.texts.bonus_events[key] ?? key;
+    toast(this.ui, count > 1 ? `${name} x${count}` : name, x, y - 20, 0.85);
     audio.play("product_appear");
   }
 
@@ -459,6 +470,7 @@ export class Farm extends Container {
         }
         this.renderShop();
       },
+      windowMissed: (kind) => this.windowMissed(kind),
       say: (s, x, y) => {
         toast(this.ui, s, x, y);
       },

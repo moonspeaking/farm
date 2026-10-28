@@ -50,6 +50,8 @@ export interface RidgeEvents {
   harvested(ridge: RidgeView, product: string, x: number, y: number, ripeFor: number, byPlayer: boolean): void;
   /** Растение должно засохнуть: true — в первый раз делается исключение (first_vegetation_dead), оно остаётся с полным запасом воды. */
   spareDry(ridge: RidgeView): boolean;
+  /** Окно быстрого сбора (плод ждёт дольше секунды) или быстрого полива (растение хочет пить дольше секунды) закрылось без действия. */
+  windowMissed(kind: "gather" | "pour"): void;
   /** Растение погибло: «засохло» или «съедено». */
   died(ridge: RidgeView, reason: "thirst" | "eaten"): void;
   /** Растение ушло на следующую стадию. */
@@ -347,11 +349,18 @@ export class RidgeView extends Container {
   update(dt: number) {
     const p = this.plant;
     if (!p) return;
-    p.products.forEach((s, i) => s && (p.ripeFor[i] += dt));
+    p.products.forEach((s, i) => {
+      if (!s) return;
+      const was = p.ripeFor[i];
+      p.ripeFor[i] += dt;
+      if (was < 1 && p.ripeFor[i] >= 1) this.events.windowMissed("gather");
+    });
     this.eatenFor = Math.max(0, this.eatenFor - dt);
     // таймер жизни без воды идёт всегда; плоды растут независимо от жажды (0x44e520)
     const wasThirsty = this.thirsty;
+    const wasWaiting = this.thirsty ? p.thirstTotal / 2 - p.thirstIn : 0;
     p.thirstIn -= dt;
+    if (wasThirsty && wasWaiting < 1 && p.thirstTotal / 2 - p.thirstIn >= 1) this.events.windowMissed("pour");
     if (!wasThirsty && this.thirsty) {
       this.events.hungry(this);
       this.updateCursors();
