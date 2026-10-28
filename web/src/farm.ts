@@ -25,8 +25,14 @@ type Mode = "shop" | "day";
 class Filled extends Container {
   private readonly fill: Sprite;
   private readonly cache = new Map<number, Texture>();
+  /** Ключ порядка рисования на ферме; по умолчанию — нижний край картинки. */
+  sortKey: number | null = null;
 
-  constructor(base: string, private readonly content: string, private readonly holeName: string, private readonly depth: number) {
+  get depth() {
+    return this.sortKey ?? this.y + this.height;
+  }
+
+  constructor(base: string, private readonly content: string, private readonly holeName: string, private readonly fillDepth: number) {
     super();
     this.fill = new Sprite();
     this.addChild(image(base), this.fill);
@@ -51,9 +57,9 @@ class Filled extends Container {
   }
 
   set level(k: number) {
-    const shift = Math.floor((1 - Math.max(0, Math.min(1, k))) * this.depth + 0.5);
+    const shift = Math.floor((1 - Math.max(0, Math.min(1, k))) * this.fillDepth + 0.5);
     // при сдвиге на всю глубину exe ничего не копирует — содержимого не видно
-    this.fill.visible = shift < this.depth;
+    this.fill.visible = shift < this.fillDepth;
     if (this.fill.visible) this.fill.texture = this.frame(shift);
   }
 }
@@ -113,8 +119,7 @@ export class Farm extends Container {
   private readonly barrels: Filled[] = [];
   private readonly boxes: Filled[] = [];
   private readonly well: Sprite;
-  private readonly pail: Container;
-  private readonly pailWater: Sprite;
+  private readonly pail: Filled;
   private readonly startBtn: Container;
   private readonly townBtn: Container;
   /** «Закончить День» — досрочное завершение, на месте кнопки «Начать День». */
@@ -129,7 +134,9 @@ export class Farm extends Container {
   private readonly arriver = new BugArriver();
   private helper: Helper | null = null;
   /** Колодец: секунды до готовности следующего ведра. */
+  /** Колодец (WellControl, 0x4afac0): пауза после использования и наполнение ведра в секундах (0 … fill_time). */
   private wellCooldown = 0;
+  private wellProgress = 0;
   private endPrompt: Container | null = null;
   /** Пустая грядка, на которой сейчас показана кнопка «Посадить растение». */
   private plantTarget: RidgeView | null = null;
@@ -137,8 +144,6 @@ export class Farm extends Container {
   private sellTarget: RidgeView | null = null;
   /** Покупка (грядка, бочка, ящик, колодец), у которой сейчас показана кнопка «Купить». */
   private buyTarget: string | null = null;
-  private wellFilling = 0;
-  private pailBase: [number, number] = [0, 0];
 
   constructor(private readonly rules: Rules, private readonly game: Game, private readonly events: FarmEvents) {
     super();
@@ -157,14 +162,11 @@ export class Farm extends Container {
     this.well.cursor = "pour";
     this.well.on("pointertap", () => this.tapWell());
     this.well.on("pointerover", () => this.setBuyTarget("well"));
-    this.pail = new Container();
-    this.pail.addChild(image("pail"));
-    this.pailWater = image("pail_water");
-    this.pail.addChild(this.pailWater);
-    // ведро качается вокруг нижнего центра, пока набирается вода (см. animatePail)
-    this.pail.pivot.set(20, 28);
-    this.pailBase = [wl.pail.position[0] - 14 + 20, wl.pail.position[1] - 26 + 28];
-    this.pail.position.set(...this.pailBase);
+    // вода в ведре — тот же Filled, что у бочки: картинка воды опускается на pail_height при пустом ведре (0x40d110)
+    this.pail = new Filled("pail", "pail_water", "pail_mask", rules.well.pail_height);
+    this.pail.position.set(wl.pail.position[0] - 14, wl.pail.position[1] - 26);
+    this.pail.level = 1;
+    this.pail.sortKey = this.well.y + this.well.height + 1; // ведро стоит у колодца и рисуется поверх его картинки
     this.pail.eventMode = "static";
     this.pail.cursor = "pour";
     this.pail.on("pointertap", () => this.tapWell());
@@ -277,7 +279,10 @@ export class Farm extends Container {
     this.townBtn.visible = false;
     this.clearShop();
     this.syncWell();
+    // начало дня (0x411ba3): ведро полное, пауза сброшена
     this.wellCooldown = 0;
+    this.wellProgress = this.rules.well.fill_time;
+    this.pail.level = 1;
     // погода дня (exe, 0x411bbe): до 5-го дня всегда обычная, дальше rand() % 3 — поровну обычная, солнце, дождь
     const w: Weather = this.game.day < 5 ? "normal" : (["normal", "sun", "rain"] as const)[Math.floor(Math.random() * 3)];
     this.game.weather = w;
@@ -366,10 +371,6 @@ export class Farm extends Container {
     this.bouquets?.update(dt);
     if (this.paused || waiting) return;
     this.weatherFx.update(dt);
-    if (this.wellFilling > 0) {
-      this.wellFilling -= dt;
-      if (this.wellFilling <= 0) this.pourPail();
-    }
     // Робин работает только в течение дня, между днями его на ферме нет
     if (this.helper) this.helper.visible = this.mode === "day";
     if (this.mode !== "day") return;
@@ -381,9 +382,7 @@ export class Farm extends Container {
     this.bugs = this.bugs.filter((b) => !b.destroyed);
     this.helper?.update(dt, this.bugs, this.ridges, (r) => this.waterRidge(r, true, true), () => this.pathGrid());
     this.sortObjects();
-    this.wellCooldown = Math.max(0, this.wellCooldown - dt);
-    this.pailWater.visible = this.wellCooldown <= 0;
-    this.animatePail();
+    this.updateWell(dt);
     this.dayLeft -= dt;
     // стрелка часов проходит верхнюю половину циферблата за день
     this.pointer.rotation = CLOCK_ANGLE[0] - (CLOCK_ANGLE[1] - CLOCK_ANGLE[0]) * (1 - Math.max(0, this.dayLeft) / this.rules.day_time);
@@ -646,34 +645,30 @@ export class Farm extends Container {
   // ================================================================ колодец и бочки
 
   /**
-   * Колодец well_00 (items.xml): water_capacity = 5 литров за ведро, fill_time = 1 с на подъём,
-   * delay = 20 с до следующего ведра. Интерпретация полей; работает только днём и только после покупки.
+   * Колодец (exe: WellItem 0x4510b0, WellControl 0x4afac0 / 0x4afc80 / 0x4afb30): поля delay = 20, fill_time = 1,
+   * water_capacity = 5, pail_height = 17. В начале дня ведро полное. Пока пауза не кончилась, она убывает; потом
+   * наполнение растёт на dt за кадр до fill_time. Нажатие отдаёт round(наполнение / fill_time · water_capacity) литров
+   * (не больше свободного места в бочках; при нуле ничего не происходит), после чего наполнение 0 и пауза delay секунд.
    */
+  private updateWell(dt: number) {
+    const w = this.rules.well;
+    if (this.wellCooldown <= 0) this.wellProgress = Math.min(w.fill_time, this.wellProgress + dt);
+    else this.wellCooldown -= dt;
+    this.pail.level = this.wellProgress / w.fill_time;
+  }
+
   private tapWell() {
     if (!this.game.well) return toast(this.ui, "Колодец нужно купить");
-    if (this.mode !== "day") return toast(this.ui, "Воду из колодца можно брать днём");
-    if (this.wellCooldown > 0 || this.wellFilling > 0) return toast(this.ui, "Ведро ещё не наполнилось");
-    if (this.game.water >= this.game.waterMax) return toast(this.ui, "Бочки полны");
-    this.wellFilling = this.rules.well.fill_time;
-    audio.play("well_use");
-  }
-
-  /** Ведро поднимается и наклоняется на середине подъёма (fill_time), вода в нём бледнеет по мере выливания. */
-  private animatePail() {
-    const ft = this.rules.well.fill_time;
-    const k = this.wellFilling > 0 ? 1 - this.wellFilling / ft : 0;
-    const swing = Math.sin(Math.PI * k);
-    this.pail.position.set(this.pailBase[0], this.pailBase[1] - 16 * swing);
-    this.pail.rotation = -0.4 * swing;
-    this.pailWater.alpha = 1 - 0.6 * k;
-  }
-
-  private pourPail() {
+    if (this.mode !== "day" || this.paused) return;
+    const w = this.rules.well;
     const room = this.game.waterMax - this.game.water;
-    const n = Math.min(this.rules.well.water_capacity, room);
+    const n = Math.min(Math.floor((this.wellProgress / w.fill_time) * w.water_capacity + 0.5), room);
+    if (n <= 0) return room <= 0 ? toast(this.ui, "Бочки полны") : undefined;
     this.game.water += n;
-    this.wellCooldown = this.rules.well.delay;
-    this.pailWater.visible = false;
+    this.wellProgress = 0;
+    this.wellCooldown = w.delay;
+    this.pail.level = 0;
+    audio.play("well_use");
     this.game.changed();
     this.renderStorages();
     toast(this.ui, `+${n} л`, this.pail.x + 30, this.pail.y - 10);

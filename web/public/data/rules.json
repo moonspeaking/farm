@@ -1913,7 +1913,8 @@
   "delay": 20.0,
   "fill_time": 1.0,
   "water_capacity": 5.0,
-  "price": 150.0
+  "price": 150.0,
+  "pail_height": 17.0
  },
  "prices": {
   "ridge": 50,
@@ -6243,7 +6244,8 @@
     "delay": 20.0,
     "fill_time": 1.0,
     "water_capacity": 5.0,
-    "price": 150.0
+    "price": 150.0,
+    "pail_height": 17.0
    },
    "prices": {
     "ridge": 250,
@@ -8395,7 +8397,8 @@
     "delay": 20.0,
     "fill_time": 1.0,
     "water_capacity": 5.0,
-    "price": 150.0
+    "price": 150.0,
+    "pail_height": 17.0
    },
    "prices": {
     "ridge": 75,
@@ -10149,7 +10152,8 @@
     "delay": 20.0,
     "fill_time": 1.0,
     "water_capacity": 5.0,
-    "price": 150.0
+    "price": 150.0,
+    "pail_height": 17.0
    },
    "prices": {
     "ridge": 500,
@@ -13562,6 +13566,7 @@
   "p_tree_2",
   "p_tree_3",
   "pail",
+  "pail_mask",
   "pail_water",
   "paper_sheet",
   "particle_sparkle",

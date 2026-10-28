@@ -101,7 +101,7 @@ export interface Rules {
   ridges_for_sale: Place[];
   water_storage: StorageLevel[];
   product_storage: StorageLevel[];
-  well: Place & { image_offset: [number, number]; pail: Place; delay: number; fill_time: number; water_capacity: number; price: number };
+  well: Place & { image_offset: [number, number]; pail: Place; delay: number; fill_time: number; water_capacity: number; price: number; pail_height: number };
   prices: { ridge: number; water: number };
   images: string[];
   quests: Record<string, Quest>;
