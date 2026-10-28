@@ -3,7 +3,7 @@ import { Container, Graphics, Rectangle } from "pixi.js";
 import { audio } from "./audio";
 import { rgb } from "./popfont";
 import type { Rules } from "./rules";
-import { COLOR, H, image, pop, roundButton, textButton, W } from "./ui";
+import { COLOR, dialog, H, image, pop, roundButton, textButton, W } from "./ui";
 
 function shade(onTap?: () => void) {
   const s = new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.45 });
@@ -273,4 +273,55 @@ export function continueDayOverlay(parent: Container, rules: Rules, actions: { r
   layer.addChild(end);
   parent.addChild(layer);
   return layer;
+}
+
+// ---------------------------------------------------------------- об игре
+
+/** Страницы свитка «Об игре»: как играть, что откуда открывается, управление, авторство. Без кавычек-ёлочек и тире — их нет в растровых шрифтах. */
+const ABOUT_PAGES: { title: string; body: string }[] = [
+  {
+    title: "Как играть",
+    body:
+      "Выращивайте цветы, продавайте их и развивайте ферму. Перед днем купите растение на грядке и воду, потом нажмите Начать День. " +
+      "День на ферме короткий: пока он идет, растения хотят пить, а на них созревают цветы.\n" +
+      "Когда около растения появляются капли, его надо полить, иначе оно засохнет. Чем быстрее вы полили или собрали цветок, тем больше опыта. " +
+      "Собранные цветы продавайте в цветочном магазине по одному или букетами.",
+  },
+  {
+    title: "Вредители и помощники",
+    body:
+      "Вредители ползут к растениям и едят их. Нажимайте на вредителя, пока он не исчезнет. " +
+      "С опытом открываются умения: торговля, садоводство и борьба с вредителями. Дракончик Робин поливает растения, собирает цветы и бьет вредителей, его умения тоже растут.\n" +
+      "Новое открывается по дням: бочка с 5 дня, ящик с 6, другие растения с 7, грядки с 10, колодец с 12.",
+  },
+  {
+    title: "Управление",
+    body:
+      "Мышь или касание: основное действие. Esc: меню. Пробел: пауза. F: полный экран.\n" +
+      "В Опциях можно выключить блестки у счетчиков, включить итоги дня, настроить звук и курсоры. " +
+      "Игра сохраняется сама. Прогресс хранится в браузере на этом устройстве, поэтому не очищайте данные сайта.",
+  },
+  {
+    title: "Об игре",
+    body:
+      "Ферма Айрис (Magic Farm) в браузере и на телефоне. Это неофициальный личный порт: правила, цифры и картинки взяты из оригинальной игры, " +
+      "права на нее принадлежат ее авторам.\n" +
+      "Автор порта: moonspeaking\ngithub.com/moonspeaking/farm",
+  },
+];
+
+/** Свиток «Об игре» в стиле игры: листается кнопками «Назад» и «Далее»; щелчок мимо закрывает. */
+export async function aboutScreen(parent: Container, rules: Rules) {
+  let page = 0;
+  for (;;) {
+    const last = page === ABOUT_PAGES.length - 1;
+    const buttons = [
+      ...(page > 0 ? [{ text: rules.texts.buttons.back ?? "Назад", value: "prev" }] : []),
+      { text: last ? (rules.texts.buttons.tutorial_baloon_close ?? "Закрыть") : "Далее", value: last ? "cancel" : "next" },
+    ];
+    const r = await dialog(parent, { title: `${ABOUT_PAGES[page].title} (${page + 1}/${ABOUT_PAGES.length})`, body: ABOUT_PAGES[page].body, buttons, width: 640 });
+    if (r === "next") page += 1;
+    else if (r === "prev") page -= 1;
+    else return;
+  }
 }

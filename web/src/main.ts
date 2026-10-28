@@ -12,7 +12,7 @@ import { Town } from "./town";
 import { Tutorial } from "./tutorial";
 import { WorldMap } from "./worldmap";
 import { loadFonts } from "./popfont";
-import { gameMenu, highscoresScreen, optionsScreen, pauseOverlay, recordScore } from "./screens";
+import { aboutScreen, gameMenu, highscoresScreen, optionsScreen, pauseOverlay, recordScore } from "./screens";
 import { H, loadImages, setSharp, toast, W } from "./ui";
 
 async function main() {
@@ -135,6 +135,7 @@ async function main() {
     hasSave: () => Game.hasSave(),
     options: () => optionsScreen(world, rules, () => undefined),
     highscores: () => highscoresScreen(world, rules, () => undefined),
+    about: () => void aboutScreen(world, rules),
     play: (fresh) => {
       for (const f of Object.values(farms)) f.destroy({ children: true });
       for (const t of Object.values(towns)) t.destroy({ children: true });

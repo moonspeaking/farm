@@ -9,6 +9,7 @@ export interface MenuEvents {
   hasSave(): boolean;
   options(): void;
   highscores(): void;
+  about(): void;
 }
 
 /**
@@ -47,7 +48,8 @@ export class Menu extends Container {
     item(b.game_adventure || "Кампания", 147, 186, 155, () => void this.adventure());
     item(b.options || "Опции", 180, 239, 96, () => this.events.options());
     item(b.menu_highscores || "Результаты", 130, 293, 201, () => this.events.highscores());
-    // «Выйти» убрано: в браузере и PWA игра сама закрыться не может (табличка в картинке меню остаётся пустой)
+    // на месте «Выйти» (в браузере и PWA игра сама закрыться не может) — свиток «Об игре»
+    item("Об игре", 174, 349, 109, () => this.events.about());
     this.addChild(this.overlay);
   }
 
