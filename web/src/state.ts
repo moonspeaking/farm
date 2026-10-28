@@ -226,8 +226,10 @@ export class Game {
     this.changed();
   }
 
+  /** Подписка на изменения; возвращает функцию отписки (уничтоженная ферма или город не должны получать события). */
   onChange(fn: Listener) {
     this.listeners.push(fn);
+    return () => void (this.listeners = this.listeners.filter((l) => l !== fn));
   }
 
   changed() {

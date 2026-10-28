@@ -2,6 +2,7 @@
 import { Application, ColorMatrixFilter, Container, Graphics } from "pixi.js";
 import { audio } from "./audio";
 import { installCursors } from "./cursors";
+import { offerInstall } from "./install";
 import { loadParticles } from "./particles";
 import { Farm } from "./farm";
 import { Menu } from "./menu";
@@ -13,7 +14,7 @@ import { Tutorial } from "./tutorial";
 import { WorldMap } from "./worldmap";
 import { loadFonts } from "./popfont";
 import { aboutScreen, gameMenu, highscoresScreen, optionsScreen, pauseOverlay, recordScore } from "./screens";
-import { H, hasImages, loadImages, setSharp, toast, W } from "./ui";
+import { H, hasImages, loadImages, setSharp, toast, unloadImages, W } from "./ui";
 
 async function main() {
   const app = new Application();
@@ -40,6 +41,7 @@ async function main() {
   audio.playMusic("menu"); // музыка меню — сразу при открытии; если браузер не разрешил, начнётся с первого касания
   document.title = rules.texts.title;
   loader?.done();
+  offerInstall();
 
   // экран оригинала 800×600 вписывается в окно с полями (телефон в альбомной ориентации)
   const world = new Container();
@@ -119,6 +121,28 @@ async function main() {
     }
   };
 
+  // есть ли у города выгруженной локации ещё квесты (карта показывает значок только у городов с квестами)
+  const questsLeft: Record<number, boolean> = {};
+
+  /**
+   * Ушли в локацию n: ферма, город и картинки остальных локаций выгружаются из памяти.
+   * Состояние ферм уже сохранено в игре (persist при уходе), при возвращении всё строится заново, а картинки подгружаются с экраном загрузки.
+   */
+  const dropOthers = (n: number) => {
+    const keep = new Set([...rules.core_images, ...(rules.location_images[String(n)] ?? [])]);
+    for (const k of Object.keys(towns).map(Number).filter((k) => k !== n)) {
+      questsLeft[k] = towns[k].hasQuests();
+      towns[k].destroy({ children: true });
+      delete towns[k];
+    }
+    for (const k of Object.keys(farms).map(Number).filter((k) => k !== n)) {
+      farms[k].destroy({ children: true });
+      delete farms[k];
+    }
+    const drop = Object.values(rules.location_images).flat().filter((name) => !keep.has(name));
+    void unloadImages(drop);
+  };
+
   /** Создаёт ферму и город локации n (игра уже переключена на неё). */
   const build = (g: Game, n: number) => {
     if (farms[n]) return;
@@ -170,6 +194,7 @@ async function main() {
     curFarm()?.persist();
     g.switchLocation(n);
     build(g, n);
+    dropOthers(n);
     show(scene === "farm" ? farms[n] : towns[n]);
     farms[n].refresh();
     towns[n].refresh();
@@ -193,15 +218,17 @@ async function main() {
     worldMap?.destroy({ children: true });
     for (const k of Object.keys(farms)) delete farms[Number(k)];
     for (const k of Object.keys(towns)) delete towns[Number(k)];
+    for (const k of Object.keys(questsLeft)) delete questsLeft[Number(k)];
     game = g;
     worldTut?.destroy({ children: true });
     worldTut = new Tutorial(rules, g, () => audio.options.warnings);
     build(g, g.loc);
+    dropOthers(g.loc);
     worldMap = new WorldMap(rules, g, {
       openTown: (n) => enter(g, n, "town"),
       openFarm: (n) => enter(g, n, "farm"),
       close: () => show(towns[g.loc]),
-      hasQuests: (n) => !towns[n] || towns[n].hasQuests(),
+      hasQuests: (n) => (towns[n] ? towns[n].hasQuests() : questsLeft[n] ?? true),
     }, worldTut);
     world.addChild(worldMap, worldTut);
     audio.playMusic("game");

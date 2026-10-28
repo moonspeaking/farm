@@ -24,6 +24,13 @@ export class Town extends Container {
   private readonly hud: Hud;
   private readonly nameTip = new Container();
 
+  private unsubscribe: () => void = () => undefined;
+
+  destroy(options?: Parameters<Container["destroy"]>[0]) {
+    this.unsubscribe();
+    super.destroy(options);
+  }
+
   constructor(
     private readonly rules: Rules,
     game: Game,
@@ -63,7 +70,7 @@ export class Town extends Container {
     this.hud = new Hud(rules, game, { openLevelUp: () => undefined, menu: () => this.events.menu() });
     this.hud.blinkOn = false; // в городе умения не улучшаются
     this.addChild(this.hud, this.overlay, this.nameTip);
-    game.onChange(() => this.hud.update());
+    this.unsubscribe = game.onChange(() => this.hud.update());
     this.hud.update();
     this.nameTip.eventMode = "none";
     this.nameTip.visible = false;

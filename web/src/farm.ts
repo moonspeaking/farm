@@ -150,6 +150,13 @@ export class Farm extends Container {
   /** Покупка (грядка, бочка, ящик, колодец), у которой сейчас показана кнопка «Купить». */
   private buyTarget: string | null = null;
 
+  private unsubscribe: () => void = () => undefined;
+
+  destroy(options?: Parameters<Container["destroy"]>[0]) {
+    this.unsubscribe();
+    super.destroy(options);
+  }
+
   constructor(private readonly rules: Rules, private readonly game: Game, private readonly events: FarmEvents) {
     super();
     const t = rules.texts;
@@ -217,7 +224,7 @@ export class Farm extends Container {
     }
     this.renderStorages();
     this.syncHelper();
-    game.onChange(() => this.renderStats());
+    this.unsubscribe = game.onChange(() => this.renderStats());
     this.enterShop();
   }
 

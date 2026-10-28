@@ -19,6 +19,13 @@ export async function loadImages(names: string[], onProgress?: (fraction: number
   }
 }
 
+/** Выгружает картинки из памяти (текстуры уничтожаются); при следующем обращении их нужно загрузить заново. */
+export async function unloadImages(names: string[]) {
+  const gone = names.filter((n) => loaded.has(n));
+  for (const n of gone) loaded.delete(n);
+  if (gone.length) await Assets.unload(gone.map((n) => `img:${n}`));
+}
+
 /** Все ли картинки уже загружены. */
 export const hasImages = (names: string[]) => names.every((n) => loaded.has(n));
 
