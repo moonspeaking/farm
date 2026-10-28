@@ -45,7 +45,8 @@ class AudioManager {
     if (this.unlocked) return;
     this.unlocked = true;
     void this.ctx?.resume();
-    if (this.playlist.length) this.startTrack();
+    // музыку, которую браузер не дал включить сам (автовоспроизведение), запускаем с первого касания или клавиши
+    if (this.playlist.length && (!this.music || this.music.paused)) this.startTrack();
   }
 
   play(name: string, volume = 1) {
@@ -67,7 +68,8 @@ class AudioManager {
     if (this.playlist === list) return;
     this.playlist = list;
     this.index = kind === "game" ? Math.floor(Math.random() * list.length) : 0;
-    if (this.unlocked) this.startTrack();
+    // пробуем сразу: если браузер разрешает автовоспроизведение, музыка играет уже при открытии игры
+    this.startTrack();
   }
 
   private startTrack() {

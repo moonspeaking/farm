@@ -26,6 +26,8 @@ async function main() {
   const rules = await loadRules();
   await Promise.all([loadImages(rules.images), loadFonts(), loadParticles(), audio.load(rules.audio)]);
   window.addEventListener("pointerdown", () => audio.unlock());
+  window.addEventListener("keydown", () => audio.unlock());
+  audio.playMusic("menu"); // музыка меню — сразу при открытии; если браузер не разрешил, начнётся с первого касания
   document.title = rules.texts.title;
   document.getElementById("loading")!.remove();
 

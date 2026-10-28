@@ -16,6 +16,9 @@ import type { Game, PlantSave, Weather } from "./state";
 import { Tutorial } from "./tutorial";
 import { COLOR, dialog, floatPoints, H, image, pop, roundButton, shopButton, type ShopButton, tex, textButton, toast, W } from "./ui";
 
+/** Шаги обучения, уже сдвинутые под перенесённые кнопки. */
+const shiftedSteps = new WeakSet<object>();
+
 type Mode = "shop" | "day";
 
 /**
@@ -187,6 +190,13 @@ export class Farm extends Container {
     this.startBtn = roundButton(t.buttons.start_new_day ?? "Начать День", () => void this.startDay());
     // в XML 527; −110, но кнопка заходит на часы дня — сдвинута влево, чтобы не накладываться на них
     this.startBtn.position.set(482 + 103, -110 + 99);
+    // подсказка start_day подсвечивает кнопку по XML (528; -110) — сдвигаем её вместе с кнопкой (один раз на набор правил)
+    const startStep = rules.tutorial_steps.start_day;
+    if (startStep && !shiftedSteps.has(startStep)) {
+      shiftedSteps.add(startStep);
+      startStep.pos[0] += 482 - 527;
+      startStep.image_pos[0] += 482 - 527;
+    }
     this.townBtn = roundButton(t.buttons.to_town_from_shop ?? "В Город", () => {
       audio.play("btn_simple_button_activated");
       this.events.toTown();
@@ -238,17 +248,19 @@ export class Farm extends Container {
     if (g.storageCount() > 0) tut.show("sell_prod", this.rules.shop_positions.sell_prod[0] + 50, this.rules.shop_positions.sell_prod[1]);
     if (g.hasMark("shop_barrel") && this.rules.water_storage[g.barrels]) {
       const nb = this.rules.water_storage[g.barrels];
-      tut.show("barrel", nb.position[0] + 60, nb.position[1] + 60);
+      // подсказка подсвечивает кнопку «Купить» — показываем её именно у этого объекта
+      if (tut.show("barrel", nb.position[0] + 60, nb.position[1] + 60)) this.setBuyTarget("barrel");
     }
     if (g.hasMark("shop_box") && this.rules.product_storage[g.boxes]) {
       const nb = this.rules.product_storage[g.boxes];
-      tut.show("box", nb.position[0] + 70, nb.position[1] + 40);
+      if (tut.show("box", nb.position[0] + 70, nb.position[1] + 40)) this.setBuyTarget("box");
     }
     if (g.hasMark("shop_ridges") && g.boughtRidges.length < this.rules.ridges_for_sale.length) {
-      const free = this.rules.ridges_for_sale.find((_, i) => !g.boughtRidges.includes(i));
-      if (free) tut.show("new_ridge", free.position[0] + 24, free.position[1] + 4);
+      const idx = this.rules.ridges_for_sale.findIndex((_, i) => !g.boughtRidges.includes(i));
+      const free = this.rules.ridges_for_sale[idx];
+      if (free && tut.show("new_ridge", free.position[0] + 24, free.position[1] + 4)) this.setBuyTarget(`ridge:${idx}`);
     }
-    if (g.hasMark("shop_well") && !g.well) tut.show("well", 188, 480);
+    if (g.hasMark("shop_well") && !g.well && tut.show("well", 188, 480)) this.setBuyTarget("well");
   }
 
   private async startDay() {
