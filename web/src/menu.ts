@@ -49,7 +49,7 @@ export class Menu extends Container {
     item(b.game_adventure || "Кампания", 147, 186, 155, () => void this.adventure());
     item(b.options || "Опции", 180, 239, 96, () => this.events.options());
     // «Об игре» на третьей табличке, «Результаты» на последней (табличка одинаковой ширины, поле w — как у «Результатов» в XML)
-    item("Об игре", 130, 293, 201, () => this.events.about());
+    item("Об игре", 130, 295, 201, () => this.events.about()); // на 2 px ниже остальных: так надпись ровно по центру таблички
     // вместо «Выйти» (в браузере и PWA игра сама закрыться не может) — свиток «Об игре» выше, «Результаты» на последней табличке
     item(b.menu_highscores || "Результаты", 130, 349, 201, () => this.events.highscores(), true);
     this.addChild(this.overlay);
