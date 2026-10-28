@@ -22,6 +22,9 @@ export function setSharp(on: boolean) {
 
 export const tex = (name: string) => Texture.from(`img:${name}`);
 
+/** Есть ли такая картинка (в данных квестов встречаются говорящие без портрета, например pirate). */
+export const hasImage = (name: string) => Assets.cache.has(`img:${name}`);
+
 export function image(name: string) {
   return new Sprite(tex(name));
 }

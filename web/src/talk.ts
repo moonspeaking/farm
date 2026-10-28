@@ -3,7 +3,7 @@ import { Container, Graphics, Sprite } from "pixi.js";
 import type { PopLabel } from "./popfont";
 import type { Answer, DialogNode } from "./quests";
 import { fmt } from "./rules";
-import { COLOR, H, image, pop, tex, textButton, W } from "./ui";
+import { COLOR, H, hasImage, image, pop, tex, textButton, W } from "./ui";
 
 export class Talk extends Container {
   private readonly portrait: Sprite;
@@ -27,7 +27,9 @@ export class Talk extends Container {
   }
 
   private show(talker: string, text: string) {
-    this.portrait.texture = tex(`talker_${talker}`);
+    // у говорящего может не быть портрета (реплика попугая talker="pirate" в локации 4) — тогда виден только текст
+    this.portrait.visible = hasImage(`talker_${talker}`);
+    if (this.portrait.visible) this.portrait.texture = tex(`talker_${talker}`);
     this.portrait.scale.set(0.95);
     this.text.text = fmt(text);
   }

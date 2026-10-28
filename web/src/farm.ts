@@ -277,7 +277,7 @@ export class Farm extends Container {
     else if (free < plants) warning = t.warnings.low_storage_capacity;
     if (warning && audio.options.warnings) {
       const r = await dialog(this.ui, {
-      offsetX: 30,
+        offsetX: 30,
         body: fmt(warning),
         buttons: [{ text: t.buttons.yes ?? "Да", value: "ok" }, { text: t.buttons.no ?? "Нет", value: "no" }],
       });
