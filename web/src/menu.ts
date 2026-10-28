@@ -61,8 +61,8 @@ export class Menu extends Container {
     const r = await dialog(this.overlay, {
       body: fmt(t.new_game.text),
       buttons: [
-        { text: t.buttons_menu.continue_game || "Продолжить", value: "continue" },
         { text: t.buttons_menu.new_game || "Новая Игра", value: "new" },
+        { text: t.buttons_menu.continue_game || "Продолжить", value: "continue" }, // справа: основное действие, легко не спутать с новой игрой
       ],
     });
     if (r === "continue") return this.events.play(false);
