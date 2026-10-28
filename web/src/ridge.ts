@@ -48,6 +48,8 @@ export interface RidgeEvents {
   say(text: string, x: number, y: number): void;
   /** Плод собран в корзину (из любого источника: игрок или Робин). */
   harvested(ridge: RidgeView, product: string, x: number, y: number, ripeFor: number, byPlayer: boolean): void;
+  /** Растение должно засохнуть: true — в первый раз делается исключение (first_vegetation_dead), оно остаётся с полным запасом воды. */
+  spareDry(ridge: RidgeView): boolean;
   /** Растение погибло: «засохло» или «съедено». */
   died(ridge: RidgeView, reason: "thirst" | "eaten"): void;
   /** Растение ушло на следующую стадию. */
@@ -284,11 +286,11 @@ export class RidgeView extends Container {
     const g = this.game;
     const ripeFor = p.ripeFor[i];
     if (g.storageCount() >= g.storageMax) {
-      const at = this.toGlobal({ x: this.anchorPoint[0], y: -20 });
+      const at = { x: this.x + this.anchorPoint[0], y: this.y - 20 };
       return this.events.say(this.rules.texts.events.no_room ?? "Хранилище заполнено", at.x, at.y);
     }
     g.storage.set(name, (g.storage.get(name) ?? 0) + 1);
-    const at = this.toGlobal({ x: p.view.x + p.def.nodes[i][0], y: p.view.y + p.def.nodes[i][1] - 20 });
+    const at = { x: this.x + p.view.x + p.def.nodes[i][0], y: this.y + p.view.y + p.def.nodes[i][1] - 20 };
     p.views[i]?.destroy();
     p.views[i] = null;
     p.products[i] = null;
@@ -318,7 +320,7 @@ export class RidgeView extends Container {
     p.products[free] = p.def.products[k];
     p.ripeFor[free] = 0;
     this.showProduct(free, p.def.products[k]);
-    const at = this.toGlobal({ x: p.view.x + p.def.nodes[free][0], y: p.view.y + p.def.nodes[free][1] });
+    const at = { x: this.x + p.view.x + p.def.nodes[free][0], y: this.y + p.view.y + p.def.nodes[free][1] };
     this.events.appeared(this, at.x, at.y);
     return true;
   }
@@ -355,6 +357,12 @@ export class RidgeView extends Container {
       this.updateCursors();
     }
     if (p.thirstIn <= 0) {
+      if (this.events.spareDry(this)) {
+        p.thirstTotal = this.nextThirst(p.def);
+        p.thirstIn = p.thirstTotal;
+        this.updateRows();
+        return;
+      }
       this.die("thirst");
       return;
     }

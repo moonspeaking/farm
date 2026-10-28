@@ -461,11 +461,17 @@ export class Farm extends Container {
         this.specific("product", fam, this.rules.texts.names[fam] ?? fam);
         if (this.game.storageCount() >= this.game.storageMax) this.tutorial.show("first_no_room", x, y);
       },
+      // первое засыхание: подсказка с исключением — растение остаётся, указатель — на самом растении
+      spareDry: (ridge) => {
+        const p = ridge.plant;
+        if (!p) return false;
+        const view = p.view;
+        return this.tutorial.show("first_vegetation_dead", ridge.x + view.x + view.width / 2, ridge.y + view.y + view.height / 2);
+      },
       died: (ridge, reason) => {
         audio.play("vegetation_die");
-        const at = ridge.toGlobal({ x: ridge.anchorPoint[0], y: -20 });
+        const at = { x: ridge.x + ridge.anchorPoint[0], y: ridge.y - 20 }; // координаты фермы (toGlobal дал бы экранные)
         toast(this.ui, reason === "thirst" ? "Растение засохло" : "Растение съедено", at.x, at.y);
-        if (reason === "thirst") this.tutorial.show("first_vegetation_dead", at.x, at.y + 30);
       },
       grew: () => audio.play("vegetation_upgrade"),
       hungry: (ridge) => {
@@ -610,7 +616,7 @@ export class Farm extends Container {
   private waterRidge(r: RidgeView, byHelper: boolean, free = false) {
     if (!r.plant || !r.thirsty) return;
     if (!free && this.game.water <= 0) {
-      const at = r.toGlobal({ x: r.anchorPoint[0], y: -30 });
+      const at = { x: r.x + r.anchorPoint[0], y: r.y - 30 };
       toast(this.ui, this.rules.texts.events.no_water ?? "Нет Воды", at.x, at.y);
       // подсказка обещает «сейчас мы заполним вашу бочку» — при первом показе бочки заполняются
       if (this.tutorial.show("first_no_water", at.x, at.y + 30)) {
@@ -626,7 +632,7 @@ export class Farm extends Container {
       if (!free) this.game.water -= 1;
       // опыт и бонусы начисляет слушатель на событие полива, кто бы ни поливал — игрок или Робин (0x422e40)
       let gained = exp;
-      const at = r.toGlobal({ x: r.anchorPoint[0], y: -30 });
+      const at = { x: r.x + r.anchorPoint[0], y: r.y - 30 };
       // «Экономный Полив» (exe проверяет раньше быстрого и на нём выходит): растению оставалось меньше 3 с — опыт ×2
       if (info.left < ECONOM_POUR_LEFT) {
         this.showBonus("econom_pour", at.x, at.y);
