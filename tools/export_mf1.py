@@ -538,6 +538,9 @@ def main():
     rules["weapon_attack"] = float(items_root.find("weapons/simple_sword").attrib["attack"])
     rules["texts"]["bug_names"] = dict(ru.find("bug_names").attrib)
     # в оригинале подсказка про цветочный магазин оставлена с английскими «sell» / «sell all» — подставляем подписи самих кнопок (без кавычек: в растровом шрифте нет « »)
+    # кнопка и пункт магазина продают цветы — подпись «Продать Цветы» вместо «Продать Плоды»
+    rules["texts"]["buttons"]["shop_button_sell_prod"] = rules["texts"]["buttons"]["shop_button_sell_prod"].replace("Плоды", "Цветы")
+    rules["texts"]["shop"]["sell_products"] = rules["texts"]["shop"]["sell_products"].replace("плоды", "цветы")
     sb = rules["texts"]["shop_buttons"]
     tut = rules["texts"]["tutorial"]
     tut["bouquet_show_sell_button"] = (tut["bouquet_show_sell_button"]

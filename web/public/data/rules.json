@@ -2061,7 +2061,7 @@
    "buy_item_price": "Цена %price%$",
    "buy_burrel": "Купить бочку\\n%price%$",
    "buy_box": "Купить ящик\\n%price%$",
-   "sell_products": "Продать плоды",
+   "sell_products": "Продать цветы",
    "buy_water": "Купить воду\\n%price%$",
    "sell_item_price": "Продажная цена %price%$",
    "buy_ridge": "Купить грядку\\n%price%$",
@@ -2121,7 +2121,7 @@
    "buy_barrel": "Купить",
    "buy_box": "Купить",
    "shop_button_buy_water": "Купить\\nВоду",
-   "shop_button_sell_prod": "Продать\\nПлоды",
+   "shop_button_sell_prod": "Продать\\nЦветы",
    "game_menu": "Меню"
   },
   "shop_buttons": {

@@ -853,7 +853,7 @@ export class Farm extends Container {
     this.buyTarget = active?.key ?? null;
     if (active) add(active.button(), ...active.at);
 
-    // «Купить Воду» (433; 32) и «Продать Плоды» (547; 86) — средние кнопки
+    // «Купить Воду» (433; 32) и «Продать Цветы» (547; 86) — средние кнопки
     // нечего покупать (бочки полны) и нечего продавать (нет плодов и собранных букетов) — кнопок нет
     if (g.water < g.waterMax) {
       const water = shopButton("medium", fmt(t.buttons.shop_button_buy_water ?? "Купить\nВоду"), null, () => this.openBuyWater());
@@ -861,7 +861,7 @@ export class Farm extends Container {
       add(water, this.rules.shop_positions.buy_water[0] + 50 - 32, this.rules.shop_positions.buy_water[1] + 30);
     }
     if (g.storageCount() > 0 || g.bouquets.orders.some((o) => o.placed.some(Boolean))) {
-      const sell = shopButton("medium", fmt(t.buttons.shop_button_sell_prod ?? "Продать\nПлоды"), null, () => this.openBouquets());
+      const sell = shopButton("medium", fmt(t.buttons.shop_button_sell_prod ?? "Продать\nЦветы"), null, () => this.openBouquets());
       add(sell, this.rules.shop_positions.sell_prod[0] + 50, this.rules.shop_positions.sell_prod[1] + 30);
     }
     void names;
