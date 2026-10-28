@@ -200,7 +200,7 @@ export function dialog(
       y += opts.content.height + 10;
       items.push(opts.content);
     }
-    const height = Math.max(200, y + 92);
+    const height = Math.max(210, y + 112); // кнопки внутри рамки свитка, над нижней рваной кромкой
     const roll = image("dialog");
     roll.width = width;
     roll.height = height;
@@ -215,7 +215,7 @@ export function dialog(
     const step = Math.min(180, (width - 80) / opts.buttons.length);
     opts.buttons.forEach((b, i) => {
       const btn = textButton(b.text, () => finish(b.value));
-      btn.position.set((i - (opts.buttons.length - 1) / 2) * step, height - 70);
+      btn.position.set((i - (opts.buttons.length - 1) / 2) * step, height - 92);
       box.addChild(btn);
     });
     box.position.set(W / 2 + (opts.offsetX ?? 0), Math.max(10, (H - height) / 2));

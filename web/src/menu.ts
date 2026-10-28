@@ -47,9 +47,10 @@ export class Menu extends Container {
     };
     item(b.game_adventure || "Кампания", 147, 186, 155, () => void this.adventure());
     item(b.options || "Опции", 180, 239, 96, () => this.events.options());
-    item(b.menu_highscores || "Результаты", 130, 293, 201, () => this.events.highscores());
-    // на месте «Выйти» (в браузере и PWA игра сама закрыться не может) — свиток «Об игре»
-    item("Об игре", 174, 349, 109, () => this.events.about());
+    // «Об игре» на третьей табличке, «Результаты» на последней (табличка одинаковой ширины, поле w — как у «Результатов» в XML)
+    item("Об игре", 130, 293, 201, () => this.events.about());
+    // вместо «Выйти» (в браузере и PWA игра сама закрыться не может) — свиток «Об игре» выше, «Результаты» на последней табличке
+    item(b.menu_highscores || "Результаты", 130, 349, 201, () => this.events.highscores());
     this.addChild(this.overlay);
   }
 
