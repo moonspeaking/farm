@@ -4,6 +4,7 @@ import type { FontName, PopLabel } from "./popfont";
 import { rgb } from "./popfont";
 import type { Rules } from "./rules";
 import type { Game } from "./state";
+import { audio } from "./audio";
 import { ParticleLayer } from "./particles";
 import { COLOR, image, pop } from "./ui";
 
@@ -19,8 +20,6 @@ export class Hud extends Container {
   private readonly glow = new Graphics();
   private blink = 0;
   private readonly particles = new ParticleLayer();
-  /** Пока true, звёздочки у счётчиков не вылетают (при продаже цветов в цветочном магазине). */
-  quiet = false;
   private shown: Record<"storage" | "water" | "money", number> | null = null;
 
   constructor(rules: Rules, private readonly game: Game, events: HudEvents) {
@@ -84,7 +83,7 @@ export class Hud extends Container {
     const g = this.game;
     // звёздочки (water-changes, money-changes, products-changes) вылетают из счётчика, когда значение меняется
     const now = { storage: g.storageCount(), water: g.water, money: g.gold };
-    if (this.shown && !this.quiet) {
+    if (this.shown && audio.options.sparkles) {
       if (now.storage !== this.shown.storage) this.particles.start("products-changes", 52, 222);
       if (now.water !== this.shown.water) this.particles.start("water-changes", 52, 324);
       if (now.money !== this.shown.money) this.particles.start("money-changes", 52, 424);

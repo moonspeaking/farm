@@ -11,6 +11,13 @@ export class Tutorial extends Container {
   /** Снимает слушатель нажатия вне подсказки (для подсказок без затемнения). */
   private offClick: (() => void) | null = null;
 
+  /** Подсказка не гаснет сама, а ждёт нажатия (в течение дня, пока игра на паузе). */
+  holdOpen = false;
+
+  get active() {
+    return this.children.length > 0;
+  }
+
   constructor(private readonly rules: Rules, private readonly game: Game, private readonly enabled: () => boolean) {
     super();
   }
@@ -113,7 +120,7 @@ export class Tutorial extends Container {
   }
 
   update(dt: number) {
-    if (this.life > 0) {
+    if (this.life > 0 && !this.holdOpen) {
       this.life -= dt;
       if (this.life <= 0) this.hide();
     }

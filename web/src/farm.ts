@@ -358,9 +358,12 @@ export class Farm extends Container {
 
   update(dt: number) {
     this.hud.tick(dt);
+    // в течение дня подсказка ставит игру на паузу до нажатия: вредители и таймеры стоят, подсказка не гаснет сама
+    const waiting = this.mode === "day" && this.tutorial.active;
+    this.tutorial.holdOpen = this.mode === "day";
     this.tutorial.update(dt);
     this.bouquets?.update(dt);
-    if (this.paused) return;
+    if (this.paused || waiting) return;
     this.weatherFx.update(dt);
     if (this.wellFilling > 0) {
       this.wellFilling -= dt;
@@ -1029,9 +1032,7 @@ export class Farm extends Container {
     this.clearShop();
     this.top.visible = false;
     this.tutorial.hide();
-    this.hud.quiet = true;
     this.bouquets = new BouquetScreen(this.rules, this.game, () => {
-      this.hud.quiet = false;
       this.bouquets = null;
       this.top.visible = true;
       this.afterPurchase();

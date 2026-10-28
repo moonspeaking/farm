@@ -132,20 +132,24 @@ export function optionsScreen(parent: Container, rules: Rules, onClose: () => vo
     for (const s of [on, off]) s.on("pointertap", () => (set(!get()), sync()));
     sync();
   };
-  check(t.fullscreen ?? "На весь экран", 196, () => !!document.fullscreenElement, (v) => {
+  check(t.fullscreen ?? "На весь экран", 190, () => !!document.fullscreenElement, (v) => {
     if (v) void document.documentElement.requestFullscreen?.().catch(() => undefined);
     else void document.exitFullscreen?.().catch(() => undefined);
   });
-  check(t.custom_cursor ?? "Специальные Курсоры", 230, () => cur.cursors, (v) => {
+  check(t.custom_cursor ?? "Специальные Курсоры", 212, () => cur.cursors, (v) => {
     cur.cursors = v;
     audio.setOptions({ ...cur });
   });
-  check(t.game_warnings ?? "Предупреждения в игре", 278, () => cur.warnings, (v) => {
+  check(t.game_warnings ?? "Предупреждения в игре", 248, () => cur.warnings, (v) => {
     cur.warnings = v;
     audio.setOptions({ ...cur });
   });
 
-  check("Итоги дня", 318, () => cur.dayStats, (v) => {
+  check("Блестки", 308, () => cur.sparkles, (v) => {
+    cur.sparkles = v;
+    audio.setOptions({ ...cur });
+  });
+  check("Итоги дня", 286, () => cur.dayStats, (v) => {
     cur.dayStats = v;
     audio.setOptions({ ...cur });
   });

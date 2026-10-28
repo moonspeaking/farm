@@ -108,10 +108,12 @@ export interface Options {
   warnings: boolean;
   /** Окно с итогами дня после «Закончить День» (в оригинале его нет). */
   dayStats: boolean;
+  /** Звёздочки у счётчиков панели, когда значение меняется. */
+  sparkles: boolean;
 }
 
 export function loadOptions(): Options {
-  const def: Options = { music: 0.5, sound: 0.7, cursors: true, warnings: true, dayStats: false };
+  const def: Options = { music: 0.5, sound: 0.7, cursors: true, warnings: true, dayStats: false, sparkles: true };
   try {
     return { ...def, ...(JSON.parse(localStorage.getItem(OPTIONS_KEY) ?? "{}") as Partial<Options>) };
   } catch {
