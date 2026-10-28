@@ -159,7 +159,7 @@ export class Farm extends Container {
     this.well = image("well");
     this.well.position.set(wl.position[0] + wl.image_offset[0], wl.position[1] + wl.image_offset[1]);
     this.well.eventMode = "static";
-    this.well.cursor = "pour";
+    this.well.cursor = "default"; // «pour» включает syncWellCursor
     this.well.on("pointertap", () => this.tapWell());
     this.well.on("pointerover", () => this.setBuyTarget("well"));
     // вода в ведре — тот же Filled, что у бочки: картинка воды опускается на pail_height при пустом ведре (0x40d110)
@@ -168,7 +168,7 @@ export class Farm extends Container {
     this.pail.level = 1;
     this.pail.sortKey = this.well.y + this.well.height + 1; // ведро стоит у колодца и рисуется поверх его картинки
     this.pail.eventMode = "static";
-    this.pail.cursor = "pour";
+    this.pail.cursor = "default";
     this.pail.on("pointertap", () => this.tapWell());
     this.objects.addChild(this.well, this.pail);
 
@@ -373,6 +373,7 @@ export class Farm extends Container {
     this.weatherFx.update(dt);
     // Робин работает только в течение дня, между днями его на ферме нет
     if (this.helper) this.helper.visible = this.mode === "day";
+    this.syncWellCursor();
     if (this.mode !== "day") return;
     if (this.endPrompt) return;
     for (const r of this.ridges) r.update(dt);
@@ -655,6 +656,15 @@ export class Farm extends Container {
     if (this.wellCooldown <= 0) this.wellProgress = Math.min(w.fill_time, this.wellProgress + dt);
     else this.wellCooldown -= dt;
     this.pail.level = this.wellProgress / w.fill_time;
+  }
+
+  /** Курсор с бочкой над колодцем и ведром — только днём и пока в ведре есть вода. */
+  private syncWellCursor() {
+    const w = this.rules.well;
+    const liters = Math.floor((this.wellProgress / w.fill_time) * w.water_capacity + 0.5);
+    const cursor = this.mode === "day" && this.game.well && liters > 0 ? "pour" : "default";
+    this.well.cursor = cursor;
+    this.pail.cursor = cursor;
   }
 
   private tapWell() {
