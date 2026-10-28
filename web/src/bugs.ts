@@ -285,8 +285,7 @@ export class Bug extends Actor {
  */
 export class Helper extends Actor {
   private cooldown = 0;
-  private task: { kind: "pour" | "product"; ridge: RidgeView } | { kind: "attack"; bug: Bug } | null = null;
-  private think = 0;
+  private task: { kind: "pour" | "product"; ridge: RidgeView } | { kind: "attack"; bug: Bug } | { kind: "walk"; x: number; y: number; left: number } | null = null;
   private readonly icon: Sprite;
 
   /** Робин летает над растениями и вредителями — рисуется поверх всего на ферме. */
@@ -305,22 +304,32 @@ export class Helper extends Actor {
     this.play("stand", 0, 1, true);
   }
 
-  update(dt: number, bugs: Bug[], ridges: RidgeView[], onWater: (r: RidgeView) => void) {
+  update(dt: number, bugs: Bug[], ridges: RidgeView[], onWater: (r: RidgeView) => void, grid: () => PathGrid) {
     const h = this.rules.helper;
     this.advance(dt);
     this.cooldown = Math.max(0, this.cooldown - dt);
+    // exe (0x45a260): задача идёт, пока не «закончена»; прогулка кончается через 1 с или по прибытии (0x45a5e0) — тогда выбор заново
+    if (this.task?.kind === "walk") {
+      this.task.left -= dt;
+      this.showIcon(null);
+      const w = this.task;
+      const arrived = Math.hypot(w.x - this.x, w.y - this.y) <= 3;
+      if (!arrived) this.fly(w.x, w.y, dt);
+      if (w.left > 0 && !arrived) return;
+      // выбор цели при законченной прогулке: нашлось дело — берём; нет — идём к той же точке ещё секунду или выбираем новую
+      this.task = this.pickTask(bugs, ridges) ?? (arrived ? this.newWalk(grid()) : { ...w, left: 1 });
+      return;
+    }
     if (!this.task) {
-      this.think -= dt;
-      if (this.think <= 0) {
-        this.task = this.pickTask(bugs, ridges);
-        this.think = 1; // не выбрал ничего — «ждать» 1 с, потом бросок заново
-      }
+      // без дела Робин не стоит: выбирает дело, а если ничего не выпало — летит в случайную проходимую точку (HelperTargetWalk)
+      this.task = this.pickTask(bugs, ridges) ?? this.newWalk(grid());
+      if (!this.task) this.play("stand", 0, 1);
+      return;
     }
     if (this.task?.kind === "attack") {
       const bug = this.task.bug;
       if (bug.dead || bug.destroyed) {
         this.task = null;
-        this.think = 0;
         return;
       }
       this.showIcon("attack");
@@ -339,7 +348,6 @@ export class Helper extends Actor {
       const valid = this.task.kind === "pour" ? r.thirsty : r.readyProduct() >= 0;
       if (!valid) {
         this.task = null;
-        this.think = 0;
         return;
       }
       this.showIcon(this.task.kind);
@@ -361,19 +369,24 @@ export class Helper extends Actor {
         }
       }
       this.task = null;
-      this.think = 0; // задача закончена — следующая выбирается сразу (0x45a260)
       return;
     }
-    this.showIcon(null);
-    if (Math.hypot(this.home[0] - this.x, this.home[1] - this.y) > 0.5) return this.fly(this.home[0], this.home[1], dt);
-    this.play("stand", 0, 1);
   }
 
-  /** Каждый день Робин начинает с одного и того же места — у дома — и первую секунду там парит. */
+  /** Каждый день Робин начинает с одного и того же места — у дома — и сразу летит по делам или гулять. */
   startDay() {
     this.rest();
     this.cooldown = 0;
-    this.think = 1;
+  }
+
+  /** HelperTargetWalk (0x45a600): случайная ячейка поля, до 20 попыток найти проходимую; идёт к ней не дольше секунды. */
+  private newWalk(grid: PathGrid): { kind: "walk"; x: number; y: number; left: number } | null {
+    for (let i = 0; i < 20; i++) {
+      const cx = Math.floor(Math.random() * grid.cols);
+      const cy = Math.floor(Math.random() * grid.rows);
+      if (grid.walkable(cx, cy)) return { kind: "walk", x: (cx + 0.5) * CELL_W, y: (cy + 0.5) * CELL_H, left: 1 };
+    }
+    return null;
   }
 
   /** Между днями Робин отдыхает у дома (на экране его нет). */

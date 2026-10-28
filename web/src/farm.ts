@@ -375,7 +375,7 @@ export class Farm extends Container {
     for (const name of this.arriver.tick(dt)) if (!this.game.quests.bugsOff?.includes(name)) this.spawnBug(name);
     for (const b of this.bugs) b.update(dt);
     this.bugs = this.bugs.filter((b) => !b.destroyed);
-    this.helper?.update(dt, this.bugs, this.ridges, (r) => this.waterRidge(r, true, true));
+    this.helper?.update(dt, this.bugs, this.ridges, (r) => this.waterRidge(r, true, true), () => this.pathGrid());
     this.sortObjects();
     this.wellCooldown = Math.max(0, this.wellCooldown - dt);
     this.pailWater.visible = this.wellCooldown <= 0;
