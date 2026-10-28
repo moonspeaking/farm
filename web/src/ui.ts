@@ -7,8 +7,8 @@ export const H = 600;
 
 let loaded: string[] = [];
 
-export async function loadImages(names: string[]) {
-  await Assets.load(names.map((n) => ({ alias: `img:${n}`, src: `img/${n}.webp` })));
+export async function loadImages(names: string[], onProgress?: (fraction: number) => void) {
+  await Assets.load(names.map((n) => ({ alias: `img:${n}`, src: `img/${n}.webp` })), onProgress);
   loaded = names;
 }
 

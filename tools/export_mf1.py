@@ -46,6 +46,7 @@ IMAGES = {
     "pail_mask": "game/farms/water_storage/farm_1_mask_1",
     "box": "game/farms/product_storage/farm_1_storage_1",
     "box_content": "game/farms/product_storage/farm_1_content_1",
+    "load_progress": "main_menu/load_progress",
     "barrel_mask": "game/farms/water_storage/barrel_mask_01",
     "box_mask": "game/farms/product_storage/farm_1_mask_1",
     "drop": "game/progresses/drop",

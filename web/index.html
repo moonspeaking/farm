@@ -15,11 +15,88 @@
     <style>
       html, body { margin: 0; height: 100%; background: #10140c; overflow: hidden; touch-action: none; }
       #game { position: fixed; inset: 0; }
-      #loading { position: fixed; inset: 0; display: grid; place-items: center; color: #e8f0c8; font: 18px system-ui, sans-serif; }
+      #loading { position: fixed; inset: 0; background: #000; z-index: 10; }
+      #loadcv { position: absolute; inset: 0; width: 100%; height: 100%; }
     </style>
   </head>
   <body>
-    <div id="loading">Идет загрузка…</div>
+    <div id="loading"><canvas id="loadcv"></canvas></div>
+    <script>
+      // Экран загрузки (как в оригинале): ромашка зацветает по ходу загрузки, вредитель пролетает по строке с надписью
+      (function () {
+        var cv = document.getElementById("loadcv");
+        var ctx = cv.getContext("2d");
+        var W = 800, H = 600;
+        var BUGS = { snail: 1, kloun: 0.5, pchela: 1, etti: 1, krab: 0.5, spirit: 1, helper: 1, gusenica: 0.5, bug: 0.6 }; // время круга анимации, с
+        var names = Object.keys(BUGS);
+        var bugName = names[Math.floor(Math.random() * names.length)];
+        var flower = new Image();
+        flower.src = "img/load_progress.webp";
+        var bug = new Image();
+        bug.src = "img/bug_" + bugName + "_move_right.webp";
+        var target = 0, shown = 0, alive = true, t0 = performance.now();
+        function resize() {
+          var d = window.devicePixelRatio || 1;
+          cv.width = innerWidth * d;
+          cv.height = innerHeight * d;
+        }
+        resize();
+        addEventListener("resize", resize);
+        function frame(now) {
+          if (!alive) return;
+          var k = Math.min(cv.width / W, cv.height / H);
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.fillStyle = "#000";
+          ctx.fillRect(0, 0, cv.width, cv.height);
+          ctx.setTransform(k, 0, 0, k, (cv.width - W * k) / 2, (cv.height - H * k) / 2);
+          shown += (target - shown) * 0.12;
+          var t = (now - t0) / 1000;
+          if (flower.complete && flower.naturalWidth) {
+            var fh = Math.floor(flower.naturalHeight / 12);
+            var idx = Math.min(11, Math.floor(shown * 12 + 0.001));
+            ctx.drawImage(flower, 0, idx * fh, flower.naturalWidth, fh, W / 2 - flower.naturalWidth / 2, 210 - fh / 2, flower.naturalWidth, fh);
+          }
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 24px Verdana, system-ui, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.shadowColor = "#000";
+          ctx.shadowBlur = 4;
+          ctx.fillText("Идет загрузка... (" + Math.round(shown * 100) + "%)", W / 2, 300);
+          ctx.shadowBlur = 0;
+          if (bug.complete && bug.naturalWidth) {
+            var bh = Math.floor(bug.naturalHeight / 11);
+            var bi = Math.floor((t / BUGS[bugName]) * 11) % 11;
+            var x = ((t * 110) % (W + 160)) - 80;
+            ctx.drawImage(bug, 0, bi * bh, bug.naturalWidth, bh, x - bug.naturalWidth / 2, 300 - bh / 2 + Math.sin(t * 3) * 6, bug.naturalWidth, bh);
+          }
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+        window.__loader = {
+          /** Доля загрузки 0…1. */
+          set: function (p) { target = Math.max(target, Math.min(1, p)); },
+          /** Загрузка закончена: дорисовываем 100 % и убираем экран. */
+          done: function () {
+            target = 1;
+            setTimeout(function () {
+              alive = false;
+              var el = document.getElementById("loading");
+              if (el) el.remove();
+            }, 350);
+          },
+          fail: function (text) {
+            alive = false;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, cv.width, cv.height);
+            ctx.fillStyle = "#e8f0c8";
+            ctx.font = "18px system-ui, sans-serif";
+            ctx.fillText(text, 20, 40);
+          },
+        };
+      })();
+    </script>
     <div id="game"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -24,12 +24,21 @@ async function main() {
   void navigator.storage?.persist?.().catch(() => undefined);
   installCursors(app, audio.options.cursors);
   const rules = await loadRules();
-  await Promise.all([loadImages(rules.images), loadFonts(), loadParticles(), audio.load(rules.audio)]);
+  // экран загрузки из index.html: картинки — основная часть (≈ 70 %), звуки ≈ 20 %, шрифты и частицы — остаток
+  const loader = (window as unknown as { __loader?: { set(p: number): void; done(): void } }).__loader;
+  const part = { img: 0, snd: 0, rest: 0 };
+  const report = () => loader?.set(0.7 * part.img + 0.2 * part.snd + 0.1 * part.rest);
+  await Promise.all([
+    loadImages(rules.images, (f) => ((part.img = f), report())),
+    loadFonts().then(() => ((part.rest += 0.5), report())),
+    loadParticles().then(() => ((part.rest += 0.5), report())),
+    audio.load(rules.audio, (f) => ((part.snd = f), report())),
+  ]);
   window.addEventListener("pointerdown", () => audio.unlock());
   window.addEventListener("keydown", () => audio.unlock());
   audio.playMusic("menu"); // музыка меню — сразу при открытии; если браузер не разрешил, начнётся с первого касания
   document.title = rules.texts.title;
-  document.getElementById("loading")!.remove();
+  loader?.done();
 
   // экран оригинала 800×600 вписывается в окно с полями (телефон в альбомной ориентации)
   const world = new Container();
@@ -214,6 +223,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  document.getElementById("loading")!.textContent = `Ошибка: ${e}`;
+  (window as unknown as { __loader?: { fail(t: string): void } }).__loader?.fail(`Ошибка: ${e}`);
   console.error(e);
 });

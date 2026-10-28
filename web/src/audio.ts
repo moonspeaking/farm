@@ -16,7 +16,7 @@ class AudioManager {
   options: Options = loadOptions();
 
   /** Загружает короткие звуки (всё, кроме музыки) заранее. */
-  async load(files: string[]) {
+  async load(files: string[], onProgress?: (fraction: number) => void) {
     try {
       this.ctx = new AudioContext();
     } catch {
@@ -25,10 +25,10 @@ class AudioManager {
     this.soundGain = this.ctx.createGain();
     this.soundGain.gain.value = this.options.sound;
     this.soundGain.connect(this.ctx.destination);
+    const list = files.filter((f) => !/^(menu|game\d)\./.test(f));
+    let done = 0;
     await Promise.all(
-      files
-        .filter((f) => !/^(menu|game\d)\./.test(f))
-        .map(async (f) => {
+      list.map(async (f) => {
           try {
             const res = await fetch(`audio/${f}`);
             const buf = await this.ctx!.decodeAudioData(await res.arrayBuffer());
@@ -36,6 +36,7 @@ class AudioManager {
           } catch {
             // нечитаемый или пустой звук пропускаем
           }
+          onProgress?.(++done / list.length);
         }),
     );
   }
