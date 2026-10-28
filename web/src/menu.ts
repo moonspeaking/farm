@@ -40,8 +40,9 @@ export class Menu extends Container {
     const b = t.buttons_menu;
     this.addChild(image("menu_bg"));
     // пункты main_menu на деревянной табличке: шрифт rubius_30, цвет 255;255;100, при наведении 255;255;175
-    const item = (text: string, x: number, y: number, w: number, onTap: () => void) => {
-      const l = textButton(text, onTap, "menu", w - 18); // надпись не шире таблички (поле w из XML — вместе с лозой по краям)
+    // fit: подгонять шрифт под ширину таблички (нужно только «Результатам»; остальные пункты — шрифтом оригинала без уменьшения)
+    const item = (text: string, x: number, y: number, w: number, onTap: () => void, fit = false) => {
+      const l = textButton(text, onTap, "menu", fit ? w - 18 : 0);
       l.position.set(x + w / 2, y + 20);
       this.addChild(l);
     };
@@ -50,7 +51,7 @@ export class Menu extends Container {
     // «Об игре» на третьей табличке, «Результаты» на последней (табличка одинаковой ширины, поле w — как у «Результатов» в XML)
     item("Об игре", 130, 293, 201, () => this.events.about());
     // вместо «Выйти» (в браузере и PWA игра сама закрыться не может) — свиток «Об игре» выше, «Результаты» на последней табличке
-    item(b.menu_highscores || "Результаты", 130, 349, 201, () => this.events.highscores());
+    item(b.menu_highscores || "Результаты", 130, 349, 201, () => this.events.highscores(), true);
     this.addChild(this.overlay);
   }
 
