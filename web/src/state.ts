@@ -13,6 +13,8 @@ export interface PlantSave {
   produceIn: number;
   produceTotal: number;
   harvested: number;
+  /** Сколько раз растение полили, когда оно хотело пить (рост по счётчику upgrade). */
+  pours?: number;
   products: (string | null)[];
 }
 

@@ -200,8 +200,8 @@ export class RidgeView extends Container {
   savePlant(): PlantSave | null {
     const p = this.plant;
     if (!p) return null;
-    const { name, thirstLost, damage, thirstIn, thirstTotal, produceIn, produceTotal, harvested, products } = p;
-    return { name, thirstLost, damage, thirstIn, thirstTotal, produceIn, produceTotal, harvested, products: [...products] };
+    const { name, thirstLost, damage, thirstIn, thirstTotal, produceIn, produceTotal, harvested, products, pours } = p;
+    return { name, thirstLost, damage, thirstIn, thirstTotal, produceIn, produceTotal, harvested, pours, products: [...products] };
   }
 
   /** Начало и конец дня: время жизни без воды выбирается заново (с погодой нового дня), как после полива; растение снова обычного цвета. */
@@ -236,6 +236,16 @@ export class RidgeView extends Container {
     p.thirstIn = p.thirstTotal;
     this.updateRows();
     this.updateCursors();
+    // рост (0x44eec0): каждый полив жаждущего растения уменьшает счётчик (в начале равен upgrade из XML); на нуле растение сменяется следующей
+    // стадией (upgrade_to_vegetation, звук vegetation_upgrade). Сбор плодов на рост не влияет, умение grow_up в exe не читается.
+    p.pours = (p.pours ?? 0) + 1;
+    const next = p.def.upgrade_to_vegetation;
+    if (next && p.def.upgrade > 0 && p.pours >= p.def.upgrade && this.rules.vegetations[next]) {
+      const keep = { thirstIn: p.thirstIn, thirstTotal: p.thirstTotal, thirstLost: p.thirstLost, harvested: p.harvested };
+      this.setPlant(next);
+      Object.assign(this.plant!, keep);
+      this.events.grew(this);
+    }
     return true;
   }
 
@@ -299,15 +309,6 @@ export class RidgeView extends Container {
     p.harvested += 1;
     g.changed();
     this.events.harvested(this, name, at.x, at.y, ripeFor, byPlayer);
-    // upgrade из XML — сколько плодов собрать до следующей стадии (ключа grow_up в exe нет — умение на него не влияет)
-    const next = p.def.upgrade_to_vegetation;
-    const need = Math.max(1, p.def.upgrade);
-    if (next && p.def.upgrade > 0 && p.harvested >= need && this.rules.vegetations[next]) {
-      const keep = { thirstIn: p.thirstIn, thirstTotal: p.thirstTotal, thirstLost: p.thirstLost };
-      this.setPlant(next);
-      Object.assign(this.plant!, keep);
-      this.events.grew(this);
-    }
   }
 
   private spawnProduct() {
