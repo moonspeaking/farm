@@ -19,6 +19,8 @@ export class Hud extends Container {
   private readonly bar = new Graphics();
   private readonly glow = new Graphics();
   private blink = 0;
+  /** Можно ли сейчас улучшать умения (не во время дня) — иначе рамка опыта не мигает. */
+  blinkOn = true;
   private readonly particles = new ParticleLayer();
   private shown: Record<"storage" | "water" | "money", number> | null = null;
 
@@ -109,7 +111,7 @@ export class Hud extends Container {
     this.blink += dt;
     this.particles.update(dt);
     this.glow.clear();
-    if (this.game.skillPoints > 0) {
+    if (this.blinkOn && this.game.skillPoints > 0) {
       const a = 0.35 + 0.35 * Math.sin(this.blink * 6);
       this.glow.roundRect(29, 120, 67, 17, 7).stroke({ color: 0xffee66, width: 3, alpha: a });
     }

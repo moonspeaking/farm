@@ -61,6 +61,7 @@ export class Town extends Container {
     this.addChild(map, farm);
     // левая панель Айрис — та же, что на ферме
     this.hud = new Hud(rules, game, { openLevelUp: () => undefined, menu: () => this.events.menu() });
+    this.hud.blinkOn = false; // в городе умения не улучшаются
     this.addChild(this.hud, this.overlay, this.nameTip);
     game.onChange(() => this.hud.update());
     this.hud.update();

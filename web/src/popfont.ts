@@ -143,6 +143,8 @@ export class PopLabel extends Container {
         x += this.advance(f, ch) * k;
       }
     });
+    // щёлкать можно по всему блоку надписи, а не только по самим буквам (между буквами и пробелами клик иначе уходил под кнопку)
+    this.hitArea = new Rectangle(0, 0, this.textWidth, this.textHeight);
     this.place();
   }
 

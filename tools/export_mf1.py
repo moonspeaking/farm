@@ -207,6 +207,20 @@ def actions(el):
     return [{"type": a.tag, **a.attrib} for a in (el if el is not None else [])]
 
 
+def unquote_csv(o):
+    """Несколько строк в XML оригинала записаны как в CSV: в кавычках, внутренние кавычки удвоены."""
+    if isinstance(o, dict):
+        return {k: unquote_csv(v) for k, v in o.items()}
+    if isinstance(o, list):
+        return [unquote_csv(v) for v in o]
+    if isinstance(o, str) and '""' in o:
+        o = o.strip()
+        if len(o) > 1 and o[0] == '"' and o[-1] == '"':
+            o = o[1:-1]
+        return o.replace('""', '"').strip()
+    return o
+
+
 def dialog(logic, texts):
     """Узлы диалога: реплики и вопросы. Тексты ru.xml идут по порядку: phrase_1.., question, answer_N."""
     out = []
@@ -655,6 +669,7 @@ def main():
                                for n, d, m in re.findall(r'<place name="([^"]*)" days="(\d+)" money="(\d+)"', scores)]
     out = web / "public" / "data" / "rules.json"
     out.parent.mkdir(parents=True, exist_ok=True)
+    rules = unquote_csv(rules)
     out.write_text(json.dumps(rules, ensure_ascii=False, indent=1))
     print(f"картинок: {len(names)}, растений: {len(vegetations)}, продуктов: {len(products)}")
     print(json.dumps({k: rules[k] for k in ("start", "day_time", "seeds", "prices", "water_storage", "product_storage", "well")}, ensure_ascii=False)[:1800])

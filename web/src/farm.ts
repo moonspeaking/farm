@@ -386,6 +386,7 @@ export class Farm extends Container {
   }
 
   update(dt: number) {
+    this.hud.blinkOn = this.mode !== "day"; // умения улучшаются только между днями — днём рамка не мигает
     this.hud.tick(dt);
     // в течение дня подсказка ставит игру на паузу до нажатия: вредители и таймеры стоят, подсказка не гаснет сама
     const waiting = this.mode === "day" && this.tutorial.active;

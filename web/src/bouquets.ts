@@ -17,6 +17,8 @@ const CONES: [number, number][] = [[203, 288], [199, 428], [709, 288], [710, 428
 const FLOWER_SPOTS: [number, number][] = [[-24, -16], [0, -30], [24, -16]];
 /** Корзина: внутренняя область, где лежат цветы. */
 const BASKET = new Rectangle(352, 308, 216, 160);
+/** Куда можно опустить цветок, чтобы он лёг в корзину (чуть шире самой корзины). */
+const BASKET_DROP = new Rectangle(340, 290, 240, 190);
 
 interface Loose {
   product: string;
@@ -29,7 +31,8 @@ export class BouquetScreen extends Container {
   private readonly orders = new Container();
   private readonly drag = new Container();
   private loose: Loose[] = [];
-  private held: { product: string; sprite: Sprite; from: Sprite } | null = null;
+  /** slot — откуда взят цветок, если он лежал в букете (а не в корзине). */
+  private held: { product: string; sprite: Sprite; from: Sprite; slot?: { oi: number; si: number } } | null = null;
   private time = 0;
   private ghosts: { sprite: Sprite; order: number; slot: number }[] = [];
   /** Подсказки туториала: цветок взят, цветок брошен (удачно или нет), заказ собран. */
@@ -165,16 +168,16 @@ export class BouquetScreen extends Container {
     this.loose.push({ product, sprite: s });
   }
 
-  private pick(product: string, from: Sprite, gx: number, gy: number) {
+  private pick(product: string, from: Sprite, gx: number, gy: number, slot?: { oi: number; si: number }) {
     if (this.held) return;
     audio.play("flower_get");
-    this.hooks.picked?.(product);
+    if (!slot) this.hooks.picked?.(product);
     const ghost = image(product);
     ghost.anchor.set(0.5);
     ghost.scale.set(1.1);
     this.drag.addChild(ghost);
     from.alpha = 0.25;
-    this.held = { product, sprite: ghost, from };
+    this.held = { product, sprite: ghost, from, slot };
     this.move(gx, gy);
   }
 
@@ -194,21 +197,43 @@ export class BouquetScreen extends Container {
     const oi = CONES.findIndex(([cx, cy]) => Math.abs(p.x - cx) < 62 && p.y > cy - 70 && p.y < cy + 50);
     const order = oi >= 0 ? this.game.bouquets.orders[oi] : undefined;
     const si = order ? order.items.findIndex((it, i) => it === h.product && !order.placed[i]) : -1;
-    this.hooks.dropped?.(!!order && si >= 0);
-    if (!order || si < 0) {
-      h.from.alpha = 1;
-      if (order) toast(this, "Этот цветок здесь не нужен", p.x, p.y - 40);
+    if (!h.slot) this.hooks.dropped?.(!!order && si >= 0);
+    if (order && si >= 0) {
+      // цветок уходит в букет: из корзины или с прежнего места (в том же или другом заказе)
+      if (h.slot) this.game.bouquets.orders[h.slot.oi].placed[h.slot.si] = null;
+      else {
+        const idx = this.loose.findIndex((l) => l.sprite === h.from);
+        if (idx >= 0) this.loose.splice(idx, 1)[0].sprite.destroy();
+        this.game.storage.set(h.product, Math.max(0, (this.game.storage.get(h.product) ?? 0) - 1));
+      }
+      order.placed[si] = h.product;
+      audio.play("flower_put_");
+      this.game.changed();
+      if (order.placed.every(Boolean)) this.complete(oi, order);
+      this.render();
       return;
     }
-    // цветок уходит из корзины в букет
-    const idx = this.loose.findIndex((l) => l.sprite === h.from);
-    if (idx >= 0) this.loose.splice(idx, 1)[0].sprite.destroy();
-    this.game.storage.set(h.product, Math.max(0, (this.game.storage.get(h.product) ?? 0) - 1));
-    order.placed[si] = h.product;
-    audio.play("flower_put_");
-    this.game.changed();
-    if (order.placed.every(Boolean)) this.complete(oi, order);
-    this.render();
+    // в корзину — на любое место в её пределах
+    if (!order && BASKET_DROP.contains(p.x, p.y)) {
+      const at: [number, number] = [Math.min(Math.max(p.x, BASKET.x + 12), BASKET.right - 12), Math.min(Math.max(p.y, BASKET.y + 12), BASKET.bottom - 12)];
+      if (h.slot) {
+        // снятый с букета цветок возвращается в запасы и ложится туда, где его отпустили
+        this.game.bouquets.orders[h.slot.oi].placed[h.slot.si] = null;
+        this.game.storage.set(h.product, (this.game.storage.get(h.product) ?? 0) + 1);
+        this.addLoose(h.product, at);
+        this.game.changed();
+        this.render();
+      } else {
+        h.from.position.set(...at);
+        h.from.alpha = 1;
+        this.basket.children.sort((a, b) => a.y - b.y);
+      }
+      audio.play("flower_put_");
+      return;
+    }
+    h.from.alpha = 1;
+    // «не нужен» — только для цветка из корзины, брошенного на чужой заказ
+    if (order && !h.slot) toast(this, "Этот цветок здесь не нужен", p.x, p.y - 40);
   }
 
   // ---------------------------------------------------------------- заказы
@@ -226,7 +251,15 @@ export class BouquetScreen extends Container {
         const s = image(o.placed[si] ?? product);
         s.anchor.set(0.5);
         s.position.set(cx + FLOWER_SPOTS[si][0], cy + FLOWER_SPOTS[si][1]);
-        if (!o.placed[si]) {
+        if (o.placed[si]) {
+          // уже стоящий цветок можно снять и переложить: пока букет не собран, он остаётся в заказе
+          s.eventMode = "static";
+          s.cursor = "grab";
+          s.on("pointerdown", (e) => {
+            e.stopPropagation();
+            this.pick(o.placed[si]!, s, e.global.x, e.global.y, { oi, si });
+          });
+        } else {
           // место ещё свободно: подсказка — полупрозрачный нужный цветок
           s.alpha = 0.4;
           s.tint = 0xcfe8ff;
