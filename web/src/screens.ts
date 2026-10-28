@@ -204,7 +204,7 @@ export function highscoresScreen(parent: Container, rules: Rules, onClose: () =>
   const t = rules.texts.headers;
   layer.addChild(image("highscores_bg"));
   const caption = pop(t.highscore_header ?? "Рекорды", "TC4_16_en", COLOR.white, { align: "center", scale: 1.1 });
-  caption.position.set(367 + 100, 154);
+  caption.position.set(406, 154); // по центру рамки (свиток 200…613)
   layer.addChild(caption);
   const head = (text: string, x: number, align: "left" | "center" = "left") => {
     const l = pop(text, "TC4_16_en", rgb(90, 55, 20), { align, scale: 0.8 });
@@ -212,19 +212,20 @@ export function highscoresScreen(parent: Container, rules: Rules, onClose: () =>
     layer.addChild(l);
   };
   head(t.highscore_player_header ?? "Игрок", 260);
-  head(t.highscore_day_header ?? "Дни", 460);
-  head(t.highscore_money_header ?? "Деньги", 518);
+  // колонки между вертикальными линиями свитка: дни 465…510, деньги 510…584 — значения по центру колонки
+  head(t.highscore_day_header ?? "Дни", 487.5, "center");
+  head(t.highscore_money_header ?? "Деньги", 547, "center");
   loadScores(rules).slice(0, 10).forEach((s, i) => {
     const y = 225 + i * 16.1;
     const color = s.current ? rgb(160, 40, 20) : rgb(60, 36, 12);
-    const place = (text: string, x: number) => {
-      const l = pop(text, "BritannicBold14", color, { scale: 0.8 });
+    const place = (text: string, x: number, align: "left" | "center" = "left") => {
+      const l = pop(text, "BritannicBold14", color, { align, scale: 0.8 });
       l.position.set(x, y);
       layer.addChild(l);
     };
     place(s.name, 260);
-    place(String(s.days), 460);
-    place(String(s.money), 518);
+    place(String(s.days), 487.5, "center");
+    place(String(s.money), 547, "center");
     if (s.current) {
       const m = image("in_game");
       m.scale.set(0.6);
