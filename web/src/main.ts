@@ -200,6 +200,13 @@ async function main() {
     });
   }
   window.addEventListener("keydown", (e) => {
+    // F — полный экран и обратно (работает и в меню); на iPhone Fullscreen API нет — тогда игра ставится на главный экран как PWA
+    if (e.code === "KeyF" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => undefined);
+      else void document.documentElement.requestFullscreen?.().catch(() => undefined);
+      return;
+    }
     if (e.code !== "Space" && e.code !== "Escape") return;
     const farm = curFarm();
     if (!farm || !(farm.visible || curTown()?.visible)) return;
