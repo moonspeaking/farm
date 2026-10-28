@@ -115,7 +115,6 @@ export class Farm extends Container {
   private readonly screens = new Container();
   readonly ui = new Container();
   private readonly hud: Hud;
-  private readonly clock: Container;
   private readonly tutorial: Tutorial;
   private readonly barrels: Filled[] = [];
   private readonly boxes: Filled[] = [];
@@ -174,7 +173,7 @@ export class Farm extends Container {
     this.objects.addChild(this.well, this.pail);
 
     // ---------------- часы дня (whether_time_ctrl) и круглые кнопки (start_day: 527; -110, to_town: 193; -110)
-    const clock = (this.clock = new Container());
+    const clock = new Container();
     clock.addChild(image("clock_back"));
     this.pointer = image("clock_pointer");
     // стрелка: rotate_pos 20; 2 и rotate_center 85; 7 из controls/time — вращение вокруг (105; 9) элемента (0x4b02d0)
@@ -973,7 +972,7 @@ export class Farm extends Container {
     const t = this.rules.texts;
     const g = this.game;
     const layer = new Container();
-    const shade = new Graphics().rect(-W, 0, 3 * W, H).fill({ color: 0x000000, alpha: 0.4 });
+    const shade = new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.4 });
     shade.eventMode = "static";
     layer.addChild(shade);
     const box = new Container();
@@ -1117,12 +1116,6 @@ export class Farm extends Container {
   /** Экран сменили — подсказки фермы убираются. */
   dismissTutorial() {
     this.tutorial.dismiss();
-  }
-
-  /** Широкий экран: панель героя прижимается к левому краю окна, часы дня — к правому (margin — сколько логических пикселей добавлено с каждой стороны). */
-  setMargin(margin: number) {
-    this.hud.x = -margin;
-    this.clock.x = 689 + margin;
   }
 
   /** Меню игры (кнопка «Меню» панели — на ферме и в городе). */

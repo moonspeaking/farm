@@ -1,5 +1,5 @@
 // «Ферма Айрис» (Magic Farm 1) на PixiJS: главное меню → ферма ⇄ город.
-import { Application, ColorMatrixFilter, Container, Graphics, Sprite } from "pixi.js";
+import { Application, ColorMatrixFilter, Container, Graphics } from "pixi.js";
 import { audio } from "./audio";
 import { installCursors } from "./cursors";
 import { loadParticles } from "./particles";
@@ -12,7 +12,6 @@ import { Town } from "./town";
 import { Tutorial } from "./tutorial";
 import { WorldMap } from "./worldmap";
 import { loadFonts } from "./popfont";
-import { SharpenFilter } from "./sharpen";
 import { gameMenu, highscoresScreen, optionsScreen, pauseOverlay, recordScore } from "./screens";
 import { H, loadImages, setSharp, toast, W } from "./ui";
 
@@ -33,25 +32,16 @@ async function main() {
   // экран оригинала 800×600 вписывается в окно с полями (телефон в альбомной ориентации)
   const world = new Container();
   app.stage.addChild(world);
-  // кадр 800 × 600 вписывается в окно; на широком экране (планшет, телефон) по бокам видна продолжающаяся картинка сцены,
-  // поэтому маска шире кадра на ровно столько, сколько помещается в окно
-  const frame = new Graphics();
-  world.addChild(frame);
-  let margin = 0;
-  const farms: Record<number, Farm> = {};
-  const towns: Record<number, Town> = {};
   const fit = () => {
     const k = Math.min(app.screen.width / W, app.screen.height / H);
     world.scale.set(k);
     setSharp(k * devicePixelRatio >= 1.75);
     world.position.set((app.screen.width - W * k) / 2, (app.screen.height - H * k) / 2);
-    margin = Math.max(0, app.screen.width / k - W) / 2;
-    frame.clear().rect(-margin, 0, W + 2 * margin, H).fill(0xffffff);
-    for (const f of Object.values(farms)) f.setMargin(margin);
-    for (const t of Object.values(towns)) t.setMargin(margin);
   };
   fit();
   app.renderer.on("resize", fit);
+  const frame = new Graphics().rect(0, 0, W, H).fill(0xffffff);
+  world.addChild(frame);
   world.mask = frame;
   // цветокоррекция под вид оригинала. Подобрана по кадру оригинала (трава справа внизу фермы): средний цвет (0,206; 0,537; 0,076),
   // насыщенность 0,872 против (0,246; 0,523; 0,105) и 0,823 у самих файлов — насыщенность +15 %, красный ×0,87, зелёный ×0,97, синий ×0,96
@@ -62,31 +52,19 @@ async function main() {
     grade.matrix[5 + i] *= 0.97;
     grade.matrix[10 + i] *= 0.96;
   }
-  world.filters = [new SharpenFilter(0.4), grade];
+  world.filters = [grade];
 
   let game: Game | null = null;
-  // у каждой локации своя ферма, город и набор квестов; создаются при первом заходе (словари объявлены выше, их читает fit)
+  // у каждой локации своя ферма, город и набор квестов; создаются при первом заходе
+  const farms: Record<number, Farm> = {};
+  const towns: Record<number, Town> = {};
   let worldMap: WorldMap | null = null;
   // подсказки города и карты рисуются поверх всего экрана, отдельно от подсказок фермы
   let worldTut: Tutorial | null = null;
   const curFarm = () => (game ? farms[game.loc] ?? null : null);
   const curTown = () => (game ? towns[game.loc] ?? null : null);
 
-  /** Боковые поля широкого экрана: зеркальные копии фона сцены слева и справа (в узких окнах не видны). */
-  const addSides = (scene: Container) => {
-    const bg = scene.children[0];
-    if (!(bg instanceof Sprite) || (scene as Container & { sides?: boolean }).sides) return;
-    (scene as Container & { sides?: boolean }).sides = true;
-    for (const x of [0, 2 * W]) {
-      const side = new Sprite(bg.texture);
-      side.scale.x = -1;
-      side.position.set(x, bg.y);
-      scene.addChildAt(side, 0);
-    }
-  };
-
   const show = (scene: Container) => {
-    addSides(scene);
     // подсказки не переходят с экрана на экран
     worldTut?.dismiss();
     for (const f of Object.values(farms)) f.dismissTutorial();
@@ -128,8 +106,6 @@ async function main() {
     }, worldTut!);
     farms[n] = f;
     towns[n] = t;
-    f.setMargin(margin);
-    t.setMargin(margin);
     world.addChild(f, t);
   };
 

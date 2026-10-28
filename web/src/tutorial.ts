@@ -56,7 +56,7 @@ export class Tutorial extends Container {
       const drawn = step.image.startsWith("talker_");
       if (!drawn) pic.blendMode = "erase";
       const fade = new Container();
-      fade.addChild(new Graphics().rect(-W, 0, 3 * W, H).fill({ color: 0x000000, alpha: step.alpha }));
+      fade.addChild(new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: step.alpha }));
       if (!drawn) fade.addChild(pic);
       fade.cacheAsTexture(true);
       // затемнение не перехватывает нажатия: нажатие на подсвеченную цель выполняет действие и убирает подсказку

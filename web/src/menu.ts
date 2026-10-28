@@ -73,7 +73,7 @@ export class Menu extends Container {
   /** Комикс о письме слуги — перед началом новой игры. Кадры появляются по очереди; щелчок показывает следующий (или все оставшиеся сразу). */
   private comics() {
     const layer = new Container();
-    layer.addChild(new Graphics().rect(-W, 0, 3 * W, H).fill(0x000000));
+    layer.addChild(new Graphics().rect(0, 0, W, H).fill(0x000000));
     const panels = COMICS_PANELS.map((r, index) => {
       const c = new Container();
       const mask = new Graphics();

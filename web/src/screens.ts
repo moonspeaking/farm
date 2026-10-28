@@ -6,7 +6,7 @@ import type { Rules } from "./rules";
 import { COLOR, H, image, pop, roundButton, textButton, W } from "./ui";
 
 function shade(onTap?: () => void) {
-  const s = new Graphics().rect(-W, 0, 3 * W, H).fill({ color: 0x000000, alpha: 0.45 });
+  const s = new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.45 });
   s.eventMode = "static";
   if (onTap) s.on("pointertap", onTap);
   return s;

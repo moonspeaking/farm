@@ -12,7 +12,7 @@ export class Talk extends Container {
 
   constructor(private readonly okText = "OK") {
     super();
-    const shade = new Graphics().rect(-W, 0, 3 * W, H).fill({ color: 0x000000, alpha: 0.35 });
+    const shade = new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.35 });
     shade.eventMode = "static";
     const roll = image("dialog");
     roll.position.set((W - roll.width) / 2, 133);

@@ -69,11 +69,6 @@ export class Town extends Container {
     this.refresh();
   }
 
-  /** Широкий экран: панель героя прижимается к левому краю окна. */
-  setMargin(margin: number) {
-    this.hud.x = -margin;
-  }
-
   update(dt: number) {
     this.hud.tick(dt);
   }
