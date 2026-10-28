@@ -6,6 +6,7 @@ import { PathGrid } from "./pathgrid";
 import { continueDayOverlay } from "./screens";
 import { Bug, BugArriver, Helper } from "./bugs";
 import { Hud } from "./hud";
+import { efficiencyRaised, productivityRaised } from "./names";
 import { LevelUp } from "./levelup";
 import { skillNotice, splash, WeatherFx } from "./notices";
 import { rgb } from "./popfont";
@@ -422,8 +423,8 @@ export class Farm extends Container {
     if (counter[key] < levels[lvl].value) return;
     table[key] = lvl + 1;
     counter[key] = 0;
-    const text = fmt(this.rules.texts.skill_up[kind === "attack" ? "attack_specific_text" : "new_product_specific_text"],
-      kind === "attack" ? { bug: name } : { vegetation_name: name });
+    // склонения для благозвучности: «Продуктивность Ромашки увеличена», «Эффективность против улитки повышена»
+    const text = kind === "attack" ? efficiencyRaised(key, name) : productivityRaised(key, name);
     const next = levels[lvl + 1]?.value ?? 0;
     skillNotice(this.ui, text, 0, next, kind === "attack" ? rgb(214, 65, 135) : rgb(102, 190, 2));
     audio.play("level_up");
