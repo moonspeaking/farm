@@ -149,7 +149,8 @@ export class PopLabel extends Container {
   }
 
   private place() {
-    this.pivot.set(this.ax * this.textWidth, this.ay * this.textHeight);
+    // целые пиксели: иначе буквы ложатся между пикселями и расплываются
+    this.pivot.set(Math.round(this.ax * this.textWidth), Math.round(this.ay * this.textHeight));
   }
 }
 
