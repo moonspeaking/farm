@@ -249,12 +249,12 @@ export class Farm extends Container {
   private shopHints() {
     const g = this.game;
     const tut = this.tutorial;
-    if (!g.tutorial.includes("start_day") && g.day === 1) tut.show("start_day", 630, 70);
-    else if (g.day === 1 && this.ridges.some((r) => !r.plant) && g.tutorial.includes("start_day")) {
-      const r = this.ridges.find((x) => !x.plant)!;
-      tut.show("first_vegetation", r.x + r.anchorPoint[0], r.y + 10);
-    }
-    if (g.storageCount() > 0) tut.show("sell_prod", this.rules.shop_positions.sell_prod[0] + 50, this.rules.shop_positions.sell_prod[1]);
+    // пузыри магазина из exe (ShopScreenFarm 0x4acf50, 0x4ad4d0, 0x4adbb0): висят, пока игрок не сделал действие —
+    // флаг «сделано» ставит само действие, а не показ (поэтому force: подсказка повторяется при каждом входе в магазин)
+    const free = this.ridges.find((x) => !x.plant);
+    if (free && !g.tutorial.includes("@first_vegetation")) tut.show("first_vegetation", free.x + free.anchorPoint[0], free.y + 10, true);
+    if (g.storageCount() > 0 && !g.tutorial.includes("@sell_prod")) tut.show("sell_prod", this.rules.shop_positions.sell_prod[0] + 50, this.rules.shop_positions.sell_prod[1], true);
+    if (g.tutorial.includes("@can_buy_water") && !g.tutorial.includes("@buy_water")) tut.show("buy_water", 0, 0, true);
     if (g.hasMark("shop_barrel") && this.rules.water_storage[g.barrels]) {
       const nb = this.rules.water_storage[g.barrels];
       // подсказка подсвечивает кнопку «Купить» — показываем её именно у этого объекта
@@ -317,6 +317,15 @@ export class Farm extends Container {
       rid.resume();
     }
     this.helper?.startDay();
+    // TutorialLayer при старте дня (exe 0x4765e0): после первого дня first_flower уже не нужна; в первый день — пузырь у растения
+    // (offset −20; −80 из tutorial/first_flower). Подсказки «первых» событий бывают только на ферме 1 — на других флаги ставятся сразу
+    if (this.game.day > 1) this.markTutorial("first_flower");
+    if (this.game.loc !== 1) for (const id of ["first_no_water", "first_no_room", "first_vegetation_dead"]) this.markTutorial(id);
+    const flowerAt = this.ridges.find((x) => x.plant);
+    if (flowerAt) {
+      const b = flowerAt.base();
+      this.tutorial.show("first_flower", b[0] - 20, b[1] - 80);
+    }
     audio.play("day_start");
     this.renderStats();
   }
@@ -410,9 +419,13 @@ export class Farm extends Container {
     for (const r of this.ridges) r.update(dt);
     // disable_bug_wave: отключённые квестом вредители не появляются
     for (const name of this.arriver.tick(dt)) if (!this.game.quests.bugsOff?.includes(name)) this.spawnBug(name);
-    for (const b of this.bugs) b.update(dt);
+    for (const b of this.bugs) {
+      b.update(dt);
+      // вредитель через 3 с после появления ставит в очередь подсказку «Это вредитель» (exe: таймер +0x3c = 3 в конструкторе Bug, 0x405a2c)
+      if (b.hintIn > 0 && (b.hintIn -= dt) <= 0 && !b.dead) this.tutorial.show("bug", b.x, b.y - 40);
+    }
     this.bugs = this.bugs.filter((b) => !b.destroyed);
-    this.helper?.update(dt, this.bugs, this.ridges, (r) => this.waterRidge(r, true, true), () => this.pathGrid());
+    this.helper?.update(dt, this.bugs, this.ridges, (r) => this.waterRidge(r, true), () => this.pathGrid(this.helper ?? undefined));
     this.sortObjects();
     this.updateWell(dt);
     this.dayLeft -= dt;
@@ -530,7 +543,7 @@ export class Farm extends Container {
   // ================================================================ вредители и Робин
 
   /** Сетка проходимости вредителей: стены локации, колодец с ведром, купленные бочки и ящики, грядки (obstacle / dynamic_obstacle из XML). */
-  private pathGrid(self?: Bug) {
+  private pathGrid(self?: Bug | Helper) {
     const grid = new PathGrid();
     for (const o of this.rules.obstacles) grid.add(o);
     const g = this.game;
@@ -543,6 +556,8 @@ export class Farm extends Container {
     for (const r of this.ridges) grid.add(r.place);
     // другие вредители занимают клетки вокруг следующей путевой точки (0x4b2290 → 0x446d40), свою клетку вредитель освобождает
     for (const b of this.bugs) if (b !== self && !b.dead) grid.addUnit(...b.footprint());
+    // Робин занимает клетки так же (0x4545c0), сам себе не мешает
+    if (this.helper && this.helper !== self && this.helper.visible) grid.addUnit(...this.helper.footprint());
     return grid;
   }
 
@@ -575,7 +590,6 @@ export class Farm extends Container {
     });
     this.bugs.push(bug);
     this.objects.addChild(bug);
-    this.tutorial.show("bug", x, y - 40);
   }
 
   /** Предмет выпадает, только пока квест разрешил (enable_bug_item count). */
@@ -629,7 +643,7 @@ export class Farm extends Container {
       return;
     }
     if (this.mode !== "day") return;
-    this.waterRidge(r, false);
+    this.waterRidge(r);
   }
 
   private setBuyTarget(key: string) {
@@ -645,7 +659,7 @@ export class Farm extends Container {
     return g.gold < Math.min(...seeds.map((s) => g.buyPrice(this.rules.vegetations[s].price_buy)));
   }
 
-  private waterRidge(r: RidgeView, byHelper: boolean, free = false) {
+  private waterRidge(r: RidgeView, free = false) {
     if (!r.plant || !r.thirsty) return;
     if (!free && this.game.water <= 0) {
       const at = { x: r.x + r.anchorPoint[0], y: r.y - 30 };
@@ -673,8 +687,6 @@ export class Farm extends Container {
       audio.play("vegetation_pour");
       const b = r.base();
       splash(this.objects, b[0], b[1] - 20);
-      // первый полив: теперь надо подождать цветок (first_flower, offset −20; −80 от растения)
-      if (!byHelper) this.tutorial.show("first_flower", b[0] - 20, b[1] - 80);
       this.gainExp(gained, b[0], b[1] - 60);
       this.game.changed();
       this.renderStorages();
@@ -945,6 +957,10 @@ export class Farm extends Container {
     this.game.gold -= g.buyPrice(this.rules.vegetations[chosen].price_buy);
     r.setPlant(chosen);
     audio.play("vegetation_buy");
+    // exe 0x465c30: покупка растения ставит метку first_vegetation и ставит в очередь подсказку «Начать День»
+    // (подсказка с затемнением, такие показываются один раз — флаг по имени в 0x4409c0)
+    this.markTutorial("@first_vegetation");
+    this.tutorial.show("start_day", 630, 70);
     this.afterPurchase();
   }
 
@@ -1006,6 +1022,7 @@ export class Farm extends Container {
   private openBuyWater() {
     const t = this.rules.texts;
     const g = this.game;
+    this.markTutorial("@buy_water"); // exe 0x4ae846: нажали «Купить воду» — пузырь buy_water больше не нужен
     const layer = new Container();
     const shade = new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.4 });
     shade.eventMode = "static";
@@ -1068,6 +1085,9 @@ export class Farm extends Container {
 
   private openBouquets() {
     if (this.bouquets) return;
+    // exe 0x46fa10: открыли продажу — пузырь sell_prod снят, и с этого момента показывается подсказка о покупке воды
+    this.markTutorial("@can_buy_water");
+    this.markTutorial("@sell_prod");
     this.clearShop();
     this.top.visible = false;
     this.tutorial.hide();
@@ -1140,6 +1160,11 @@ export class Farm extends Container {
     this.renderStats();
     this.persist();
     this.shopHints();
+  }
+
+  /** Флаг «действие сделано» для пузырей обучения (в exe — множество GameHolder, 0x442160). */
+  private markTutorial(flag: string) {
+    if (!this.game.tutorial.includes(flag)) this.game.tutorial.push(flag);
   }
 
   private afterPurchase() {

@@ -90,6 +90,8 @@ export interface BugEvents {
 }
 
 export class Bug extends Actor {
+  /** Через сколько секунд после появления показать подсказку «bug» (exe: поле +0x3c = 3,0). */
+  hintIn = 3;
   life: number;
   maxLife: number;
   dead = false;
@@ -422,28 +424,27 @@ export class Helper extends Actor {
     return this.rules.helper.speed * (1 + skill);
   }
 
-  /** Движение по путевым точкам (как у вредителей, 0x4b2a10): точка засчитывается, когда до неё остаётся меньше шага. */
+  /**
+   * Движение по путевым точкам (Helper, 0x4547e0; вызывается из 0x454a20, пока путь не пуст): шаг = speed · скорость задачи · dt.
+   * В отличие от вредителей, остаток шага переносится: пройдя точку, Робин идёт дальше к следующей. Следующая точка
+   * проверяется на проходимость, когда до неё дошла очередь; занята — путь просто сбрасывается (0x43aaf0), без перестройки.
+   */
   private follow(dt: number, grid: () => PathGrid) {
     if (!this.path.length) return;
-    const step = this.speed() * dt;
-    if (!grid().walkable(this.path[0][0], this.path[0][1])) {
-      // путь перекрыт (купили грядку, встал вредитель) — строится заново к той же цели
-      this.path = [];
-      const t = this.task;
-      if (t && t.kind !== "walk" && !this.plan(grid(), t.kind === "attack" ? [t.bug.x, t.bug.y] : t.ridge.base())) {
-        this.task = null;
-        this.retry = 0.5;
-      }
-      return;
-    }
+    let step = this.speed() * dt;
     const wp = () => [this.path[0][0] * CELL_W, this.path[0][1] * CELL_H] as const;
     let [wx, wy] = wp();
     let d = Math.hypot(wx - this.x, wy - this.y);
     while (d < step) {
+      step -= d;
       this.x = wx;
       this.y = wy;
       this.path.shift();
       if (!this.path.length) return;
+      if (!grid().walkable(this.path[0][0], this.path[0][1])) {
+        this.path = [];
+        return;
+      }
       [wx, wy] = wp();
       d = Math.hypot(wx - this.x, wy - this.y);
     }
@@ -467,6 +468,12 @@ export class Helper extends Actor {
     return null;
   }
 
+  /** Занятые Робином клетки (0x4545c0): как у вредителей — квадрат вокруг следующей путевой точки, без пути — вокруг своей клетки; радиус — helper/radius. */
+  footprint(): [number, number, number] {
+    const cell: Cell = this.path.length ? this.path[0] : [Math.floor(this.x / CELL_W), Math.floor(this.y / CELL_H)];
+    return [cell[0], cell[1], this.rules.helper.radius];
+  }
+
   /** Между днями Робин отдыхает у дома (на экране его нет). */
   rest() {
     this.task = null;
@@ -486,7 +493,8 @@ export class Helper extends Actor {
   /**
    * Выбор цели по exe (0x459420): для каждого вида дела собирается ближайший кандидат (ключи map: 0 — сбор, 1 — полив, 2 — атака);
    * затем виды с кандидатами идут в этом порядке, и первый, у кого `rand < вероятность`, побеждает — берётся его ближайшая цель.
-   * Не сработал ни один — задача «ждать» (в exe поле 1,0 в 0x45a5c0).
+   * Не сработал ни один — отдельной задачи ожидания нет: идущая прогулка продолжается с таймером 1,0 (0x45a5c0),
+   * а если Робин не гулял или путь кончился — начинается новая прогулка (0x45a600).
    */
   private pickTask(bugs: Bug[], ridges: RidgeView[]): NonNullable<Helper["task"]> | null {
     type Task = NonNullable<Helper["task"]>;

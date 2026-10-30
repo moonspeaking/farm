@@ -14,9 +14,15 @@ function forDevice(text: string) {
     .replace(/левую кнопку мыши/g, "палец");
 }
 
+/** Пузыри экрана подготовки (ShopScreenFarm): держатся, пока игрок не сделает действие. */
+const SHOP_BALLOONS = new Set(["first_vegetation", "sell_prod", "buy_water"]);
+
 export class Tutorial extends Container {
   private life = 0;
   private after: (() => void) | null = null;
+  /** Показанная сейчас подсказка и ждущие своей очереди. */
+  private current: string | null = null;
+  private queue: { id: string; x: number; y: number; after?: () => void }[] = [];
   /** Снимает слушатель нажатия вне подсказки (для подсказок без затемнения). */
   private offClick: (() => void) | null = null;
 
@@ -42,7 +48,19 @@ export class Tutorial extends Container {
     if (!force) {
       this.game.tutorial.push(id);
     }
-    this.hide();
+    // очередь оригинала (TutorialLayer 0x476a40): пузыри идут по одному, следующий — когда погас предыдущий;
+    // одна и та же подсказка в очереди не дублируется (0x441d90)
+    if (this.active) {
+      if (this.current !== id && !this.queue.some((q) => q.id === id)) this.queue.push({ id, x, y, after });
+      return true;
+    }
+    this.display(id, x, y, after);
+    return true;
+  }
+
+  private display(id: string, x: number, y: number, after?: () => void) {
+    const text = this.rules.texts.tutorial[id];
+    this.current = id;
     this.after = after ?? null;
     const step = this.rules.tutorial_steps[id];
     const relative = !step || step.pos[0] === 0;
@@ -101,7 +119,9 @@ export class Tutorial extends Container {
     bubble.eventMode = "static";
     box.addChild(bubble);
     this.addChild(box);
-    this.life = 12;
+    // окно с затемнением (0x495850) таймера не имеет — висит до «Закрыть»; так же пузыри магазина, пока не сделано действие.
+    // Простой пузырь TutorialLayer (без затемнения) живёт 10 с (0x41200000 в 0x476a40)
+    this.life = step?.image || SHOP_BALLOONS.has(id) ? Infinity : 10;
     // подсказка исчезает, как только игрок нажал или сделал действие (следующее нажатие)
     const onDown = () => this.hide();
     const timer = window.setTimeout(() => {
@@ -109,12 +129,12 @@ export class Tutorial extends Container {
       this.offClick = () => window.removeEventListener("pointerdown", onDown);
     }, 0);
     this.offClick = () => window.clearTimeout(timer);
-    return true;
   }
 
   /** Убирает подсказку при смене экрана: цепочка «после закрытия» не продолжается. */
   dismiss() {
     this.after = null;
+    this.queue = [];
     this.hide();
   }
 
@@ -123,9 +143,14 @@ export class Tutorial extends Container {
     this.offClick = null;
     this.removeChildren().forEach((c) => c.destroy({ children: true }));
     this.life = 0;
+    this.current = null;
     const next = this.after;
     this.after = null;
     next?.();
+    if (!this.active) {
+      const q = this.queue.shift();
+      if (q) this.display(q.id, q.x, q.y, q.after);
+    }
   }
 
   update(dt: number) {

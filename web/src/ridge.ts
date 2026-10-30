@@ -90,7 +90,8 @@ export class RidgeView extends Container {
     const [x, y] = place.position;
     const [w, h] = place.dimensions;
     this.position.set(x, y);
-    this.anchorPoint = [w / 2, h / 2];
+    // точка грядки в exe (0x439b60 / 0x439bf0) — position + dimensions / 2 целочисленным делением: к ней идут Робин и вредители
+    this.anchorPoint = [Math.trunc(w / 2), Math.trunc(h / 2)];
     this.ground = image("ridge");
     this.ground.anchor.set(0.5);
     this.ground.position.set(...this.anchorPoint);
