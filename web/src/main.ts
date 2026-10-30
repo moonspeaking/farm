@@ -1,5 +1,5 @@
 // «Ферма Айрис» (Magic Farm 1) на PixiJS: главное меню → ферма ⇄ город.
-import { Application, ColorMatrixFilter, Container, Graphics } from "pixi.js";
+import { Application, Container, Graphics } from "pixi.js";
 import { audio } from "./audio";
 import { installCursors } from "./cursors";
 import { offerInstall } from "./install";
@@ -20,6 +20,11 @@ import { H, hasImages, loadImages, setSharp, toast, unloadImages, W } from "./ui
 async function main() {
   const app = new Application();
   await app.init({ background: 0x0f1a08, resizeTo: window, antialias: true, autoDensity: true, resolution: devicePixelRatio });
+  // оригинал под CrossOver на Mac выводит пиксели без профиля, и macOS растягивает sRGB-картинки на гамут Display P3 —
+  // трава становится почти чисто зелёной. Повторяем этот вид: те же значения пикселей браузер трактует как P3
+  // (на экранах без P3 ничего не меняется)
+  const gl = (app.renderer as { gl?: WebGL2RenderingContext }).gl;
+  if (gl && "drawingBufferColorSpace" in gl) gl.drawingBufferColorSpace = "display-p3";
   document.getElementById("game")!.appendChild(app.canvas);
 
   // профиль лежит в localStorage: просим браузер не вычищать его при нехватке места
@@ -103,18 +108,6 @@ async function main() {
   const frame = new Graphics().rect(0, 0, W, H).fill(0xffffff);
   world.addChild(frame);
   world.mask = frame;
-  // цветокоррекция под вид оригинала. Подобрана по кадру оригинала (трава справа внизу фермы): средний цвет (0,206; 0,537; 0,076),
-  // насыщенность 0,872 против (0,246; 0,523; 0,105) и 0,823 у самих файлов — насыщенность +15 %, красный ×0,87, зелёный ×0,97, синий ×0,96
-  const grade = new ColorMatrixFilter();
-  // по умолчанию фильтр рисует с разрешением 1 и картинка на телефонах с плотностью экрана 2–3 растягивается и мутнеет — берём разрешение экрана
-  grade.resolution = "inherit";
-  grade.saturate(0.15, false);
-  for (let i = 0; i < 5; i++) {
-    grade.matrix[i] *= 0.87;
-    grade.matrix[5 + i] *= 0.97;
-    grade.matrix[10 + i] *= 0.96;
-  }
-  world.filters = [grade];
 
   let game: Game | null = null;
   // у каждой локации своя ферма, город и набор квестов; создаются при первом заходе
