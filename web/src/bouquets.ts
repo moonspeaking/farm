@@ -244,9 +244,8 @@ export class BouquetScreen extends Container {
     this.game.bouquets.orders.slice(0, 4).forEach((o, oi) => {
       const [cx, cy] = CONES[oi];
       const price = this.game.orderPrice(o);
-      const tag = pop(fmt(this.rules.texts.shop.price, { price }), "BritannicBold14", COLOR.white, { align: "center", scale: 1.1 });
+      const tag = pop(fmt(this.rules.texts.shop.price, { price }), "BritannicBold14", COLOR.black, { align: "center", scale: 1.1 });
       tag.position.set(cx - 18, cy - 62);
-      this.orders.addChild(tag);
       o.items.forEach((product, si) => {
         const s = image(o.placed[si] ?? product);
         s.anchor.set(0.5);
@@ -267,6 +266,8 @@ export class BouquetScreen extends Container {
         }
         this.orders.addChild(s);
       });
+      // цена — поверх цветов, чтобы букет её не закрывал
+      this.orders.addChild(tag);
     });
   }
 
