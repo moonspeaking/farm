@@ -3,6 +3,7 @@ import { Application, ColorMatrixFilter, Container, Graphics } from "pixi.js";
 import { audio } from "./audio";
 import { installCursors } from "./cursors";
 import { offerInstall } from "./install";
+import { watchUpdates } from "./update";
 import { loadParticles } from "./particles";
 import { Farm } from "./farm";
 import { Menu } from "./menu";
@@ -42,6 +43,7 @@ async function main() {
   document.title = rules.texts.title;
   loader?.done();
   offerInstall();
+  watchUpdates({ idle: () => !game, beforeReload: () => curFarm()?.persist() });
 
   // экран оригинала 800×600 вписывается в окно с полями (телефон в альбомной ориентации)
   const world = new Container();
