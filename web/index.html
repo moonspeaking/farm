@@ -35,11 +35,12 @@
   <body>
     <div id="loading"><canvas id="loadcv"></canvas></div>
     <script>
-      // Экран загрузки (как в оригинале): ромашка зацветает по ходу загрузки, вредитель пролетает по строке с надписью
+      // Экран загрузки оригинала (BugsLoadingScreen, exe 0x472f80 / 0x472da0): ромашка в (356; 200) зацветает по показанному
+      // проценту; вредитель стоит в x = (1 − процент) · 800 и ползёт справа налево, надпись приклеена справа к нему
       (function () {
         var cv = document.getElementById("loadcv");
         var ctx = cv.getContext("2d");
-        var W = 800, H = 600;
+        var W = 800, H = 600, POS_Y = 300; // loading pos_y из properties_ru.xml
         var BUGS = { snail: 1, kloun: 0.5, pchela: 1, etti: 1, krab: 0.5, spirit: 1, helper: 1, gusenica: 0.5, bug: 0.6 }; // время круга анимации, с
         var names = Object.keys(BUGS);
         var bugName = names[Math.floor(Math.random() * names.length)];
@@ -47,7 +48,9 @@
         flower.src = "img/load_progress.webp";
         var bug = new Image();
         bug.src = "img/bug_" + bugName + "_move_right.webp";
-        var target = 0, shown = 0, alive = true, t0 = performance.now();
+        // target — реальная доля загрузки; shown догоняет её. В оригинале не быстрее dt / 5 (20 % в секунду, экран минимум 5 с) —
+        // здесь без этого замедления: доля 4 / с только сглаживает рывки между файлами. fade — появление экрана за 0,2 с
+        var target = 0, shown = 0, fade = 0, finished = false, alive = true, t0 = performance.now(), last = t0;
         var el = document.getElementById("loading");
         function resize() {
           var d = window.devicePixelRatio || 1;
@@ -58,32 +61,45 @@
         addEventListener("resize", resize);
         function frame(now) {
           if (!alive) return;
+          var dt = Math.min((now - last) / 1000, 0.1);
+          last = now;
+          if (shown < target) shown = Math.min(target, shown + dt * 4);
+          fade = Math.min(1, fade + dt * 5);
+          // экран закрывается, когда загрузка закончена и показано больше 99,99 %
+          if (finished && shown > 0.9999) {
+            alive = false;
+            el.style.display = "none";
+            return;
+          }
           var k = Math.min(cv.width / W, cv.height / H);
           ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.globalAlpha = 1;
           ctx.fillStyle = "#000";
           ctx.fillRect(0, 0, cv.width, cv.height);
           ctx.setTransform(k, 0, 0, k, (cv.width - W * k) / 2, (cv.height - H * k) / 2);
-          shown += (target - shown) * 0.12;
+          ctx.globalAlpha = fade;
           var t = (now - t0) / 1000;
+          // порядок оригинала: вредитель, ромашка, надпись
+          var bw = 0, bh = 0, bx = Math.floor((1 - shown) * W + 0.5);
+          if (bug.complete && bug.naturalWidth) {
+            bw = bug.naturalWidth;
+            bh = Math.floor(bug.naturalHeight / 11);
+            var bi = Math.floor((t / BUGS[bugName]) * 11) % 11;
+            ctx.drawImage(bug, 0, bi * bh, bw, bh, bx, POS_Y - Math.floor(bh / 2), bw, bh);
+          }
           if (flower.complete && flower.naturalWidth) {
             var fh = Math.floor(flower.naturalHeight / 12);
             var idx = Math.min(11, Math.floor(shown * 12 + 0.001));
-            ctx.drawImage(flower, 0, idx * fh, flower.naturalWidth, fh, W / 2 - flower.naturalWidth / 2, 210 - fh / 2, flower.naturalWidth, fh);
-          }
-          // вредитель ползёт по строке, а не перед ней: буквы лежат поверх него
-          if (bug.complete && bug.naturalWidth) {
-            var bh = Math.floor(bug.naturalHeight / 11);
-            var bi = Math.floor((t / BUGS[bugName]) * 11) % 11;
-            var x = ((t * 110) % (W + 160)) - 80;
-            ctx.drawImage(bug, 0, bi * bh, bug.naturalWidth, bh, x - bug.naturalWidth / 2, 312 - bh / 2 + Math.sin(t * 3) * 3, bug.naturalWidth, bh);
+            ctx.drawImage(flower, 0, idx * fh, flower.naturalWidth, fh, 356, 200, flower.naturalWidth, fh);
           }
           ctx.fillStyle = "#fff";
           ctx.font = "bold 24px Verdana, system-ui, sans-serif";
-          ctx.textAlign = "center";
+          ctx.textAlign = "left";
           ctx.textBaseline = "middle";
           ctx.shadowColor = "#000";
           ctx.shadowBlur = 4;
-          ctx.fillText("Идет загрузка... (" + Math.round(shown * 100) + "%)", W / 2, 300);
+          // надпись — сразу за вредителем, по центру его высоты
+          ctx.fillText("Идет загрузка... (" + Math.round(shown * 100) + "%)", bx + bw, POS_Y - Math.floor(bh / 2) + bh / 2);
           ctx.shadowBlur = 0;
           requestAnimationFrame(frame);
         }
@@ -93,7 +109,9 @@
           show: function () {
             target = 0;
             shown = 0;
-            t0 = performance.now();
+            fade = 0;
+            finished = false;
+            t0 = last = performance.now();
             el.style.display = "block";
             resize();
             if (!alive) {
@@ -103,13 +121,10 @@
           },
           /** Доля загрузки 0…1. */
           set: function (p) { target = Math.max(target, Math.min(1, p)); },
-          /** Загрузка закончена: дорисовываем 100 % и прячем экран. */
+          /** Загрузка закончена: экран прячется, когда показанный процент дойдёт до 100. */
           done: function () {
             target = 1;
-            setTimeout(function () {
-              alive = false;
-              el.style.display = "none";
-            }, 350);
+            finished = true;
           },
           fail: function (text) {
             alive = false;
