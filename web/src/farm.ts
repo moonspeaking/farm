@@ -352,6 +352,7 @@ export class Farm extends Container {
    */
   private promptEndDay() {
     if (this.endPrompt) return;
+    audio.play("day_end"); // звук конца дня — в тот же миг, когда появляется кнопка, а не после нажатия
     this.endPrompt = continueDayOverlay(this.ui, this.rules, {
       resume: () => undefined,
       endDay: () => {
@@ -364,7 +365,6 @@ export class Farm extends Container {
 
   private async endDay() {
     this.mode = "shop";
-    audio.play("day_end");
     // вредители уходят вместе с днём
     for (const b of this.bugs) b.destroy({ children: true });
     this.bugs = [];
@@ -1050,6 +1050,8 @@ export class Farm extends Container {
       this.renderStorages();
       // кнопка «Купить Воду» на ферме исчезает сразу, как только бочки полны
       this.renderShop();
+      // бочки полны — окно покупки закрывается само, как в оригинале
+      if (g.water >= g.waterMax) close();
     };
     const b1 = textButton(t.buttons.buy_water ?? "Купить литр воды", () => buy(1));
     b1.position.set(0, 180);

@@ -56,10 +56,8 @@ export function gameMenu(parent: Container, rules: Rules, actions: { options(): 
 export function optionsScreen(parent: Container, rules: Rules, onClose: () => void) {
   const layer = new Container();
   const t = rules.texts.options;
-  const original = { ...audio.options };
   const cur = { ...audio.options };
-  const done = (keep: boolean) => {
-    if (!keep) audio.setOptions(original);
+  const done = () => {
     layer.destroy({ children: true });
     onClose();
   };
@@ -103,13 +101,13 @@ export function optionsScreen(parent: Container, rules: Rules, onClose: () => vo
     track.on("pointerdown", (e) => move(e.global.x));
     box.addChild(track, thumb);
   };
-  label(t.music ?? "Музыка", 173, 84);
-  slider(106, cur.music, (v) => {
+  label(t.music ?? "Музыка", 173, 94);
+  slider(113, cur.music, (v) => {
     cur.music = v;
     audio.setOptions({ ...cur });
   });
-  label(t.sound ?? "Звуки", 173, 134);
-  slider(156, cur.sound, (v) => {
+  label(t.sound ?? "Звуки", 173, 139);
+  slider(158, cur.sound, (v) => {
     cur.sound = v;
     audio.setOptions({ ...cur });
     audio.play("flower_get");
@@ -133,36 +131,34 @@ export function optionsScreen(parent: Container, rules: Rules, onClose: () => vo
     sync();
     return sync;
   };
-  const fullscreenCheck = check(t.fullscreen ?? "На весь экран", 190, () => !!document.fullscreenElement, (v) => {
+  const fullscreenCheck = check(t.fullscreen ?? "На весь экран", 188, () => !!document.fullscreenElement, (v) => {
     if (v) void document.documentElement.requestFullscreen?.().catch(() => undefined);
     else void document.exitFullscreen?.().catch(() => undefined);
   });
   // полный экран включается не мгновенно (и клавишей F тоже) — флажок обновляется, когда режим действительно сменился
   document.addEventListener("fullscreenchange", fullscreenCheck);
   layer.once("destroyed", () => document.removeEventListener("fullscreenchange", fullscreenCheck));
-  check(t.custom_cursor ?? "Специальные Курсоры", 212, () => cur.cursors, (v) => {
+  check(t.custom_cursor ?? "Специальные Курсоры", 210, () => cur.cursors, (v) => {
     cur.cursors = v;
     audio.setOptions({ ...cur });
   });
-  check(t.game_warnings ?? "Предупреждения в игре", 248, () => cur.warnings, (v) => {
+  check(t.game_warnings ?? "Предупреждения в игре", 243, () => cur.warnings, (v) => {
     cur.warnings = v;
     audio.setOptions({ ...cur });
   });
 
-  check("Блестки", 308, () => cur.sparkles, (v) => {
+  check("Блестки", 297, () => cur.sparkles, (v) => {
     cur.sparkles = v;
     audio.setOptions({ ...cur });
   });
-  check("Итоги дня", 286, () => cur.dayStats, (v) => {
+  check("Итоги дня", 275, () => cur.dayStats, (v) => {
     cur.dayStats = v;
     audio.setOptions({ ...cur });
   });
 
-  const ok = textButton(rules.texts.buttons.ok ?? "OK", () => done(true));
-  ok.position.set(115, 375);
-  const cancel = textButton(rules.texts.buttons.cancel ?? "Отмена", () => done(false));
-  cancel.position.set(235, 375);
-  box.addChild(ok, cancel);
+  const ok = textButton(rules.texts.buttons.ok ?? "OK", done);
+  ok.position.set(173, 375);
+  box.addChild(ok);
   layer.addChild(box);
   parent.addChild(layer);
 }

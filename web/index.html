@@ -70,6 +70,13 @@
             var idx = Math.min(11, Math.floor(shown * 12 + 0.001));
             ctx.drawImage(flower, 0, idx * fh, flower.naturalWidth, fh, W / 2 - flower.naturalWidth / 2, 210 - fh / 2, flower.naturalWidth, fh);
           }
+          // вредитель ползёт по строке, а не перед ней: буквы лежат поверх него
+          if (bug.complete && bug.naturalWidth) {
+            var bh = Math.floor(bug.naturalHeight / 11);
+            var bi = Math.floor((t / BUGS[bugName]) * 11) % 11;
+            var x = ((t * 110) % (W + 160)) - 80;
+            ctx.drawImage(bug, 0, bi * bh, bug.naturalWidth, bh, x - bug.naturalWidth / 2, 312 - bh / 2 + Math.sin(t * 3) * 3, bug.naturalWidth, bh);
+          }
           ctx.fillStyle = "#fff";
           ctx.font = "bold 24px Verdana, system-ui, sans-serif";
           ctx.textAlign = "center";
@@ -78,12 +85,6 @@
           ctx.shadowBlur = 4;
           ctx.fillText("Идет загрузка... (" + Math.round(shown * 100) + "%)", W / 2, 300);
           ctx.shadowBlur = 0;
-          if (bug.complete && bug.naturalWidth) {
-            var bh = Math.floor(bug.naturalHeight / 11);
-            var bi = Math.floor((t / BUGS[bugName]) * 11) % 11;
-            var x = ((t * 110) % (W + 160)) - 80;
-            ctx.drawImage(bug, 0, bi * bh, bug.naturalWidth, bh, x - bug.naturalWidth / 2, 300 - bh / 2 + Math.sin(t * 3) * 6, bug.naturalWidth, bh);
-          }
           requestAnimationFrame(frame);
         }
         requestAnimationFrame(frame);
