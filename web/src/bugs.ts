@@ -343,9 +343,9 @@ export class Helper extends Actor {
         this.path = [];
         this.play("stand", bug.x - this.x, 0);
         if (this.cooldown <= 0) {
-          // умение Робина: к атаке прибавляется helper_attack, период делится на (1 + helper_attack_speed)
-          bug.hit(h.attack + this.game.bonus("helper_attack", "helper_attack"), true);
-          this.cooldown = h.attack_period / (1 + this.game.bonus("helper_attack", "helper_attack_speed"));
+          // exe 0x456820: урон = attack · значение(helper_attack), таймер удара каждый раз заново = attack_period (умение его не ускоряет)
+          bug.hit(h.attack * (1 + this.game.bonus("helper_attack", "helper_attack")), true);
+          this.cooldown = h.attack_period;
         }
         return;
       }
@@ -412,11 +412,13 @@ export class Helper extends Actor {
     return true;
   }
 
-  /** Скорость полёта: speed из XML, у полива и сбора — с умением «скорость» (slot 4 задач, 0x45a4f0). */
+  /** Скорость полёта: speed из XML × значение умения «скорость» задачи (слот скорости в vtable задач: 0x45a4f0 полив,
+   *  0x4574a0 / 0x456fd0 сбор, 0x456ae0 атака — helper_attack_speed ускоряет полёт к вредителю, а не удары). */
   private speed() {
     const t = this.task;
     const skill = t?.kind === "pour" ? this.game.bonus("helper_pour", "helper_pour_speed")
-      : t?.kind === "product" ? this.game.bonus("helper_product", "helper_product_speed") : 0;
+      : t?.kind === "product" ? this.game.bonus("helper_product", "helper_product_speed")
+      : t?.kind === "attack" ? this.game.bonus("helper_attack", "helper_attack_speed") : 0;
     return this.rules.helper.speed * (1 + skill);
   }
 
