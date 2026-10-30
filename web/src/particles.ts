@@ -154,16 +154,24 @@ export class ParticleLayer extends Container {
     const scale = rand(c.scale.start, c.scale.start + (c.scale.end - c.scale.start) * c.scale.var);
     const spin = rand(c.spin.start, c.spin.start + (c.spin.end - c.spin.start) * c.spin.var);
     const color = c.color_start.map((s, i) => rand(s, s + (c.color_end[i] - s) * c.color_var[i === 3 ? 1 : 0]));
+    const x = e.x + rand(-2, 2);
+    const y = e.y + rand(-2, 2);
     const s = new Sprite(tex(TEXTURE[e.name] ?? "particle_star"));
     s.anchor.set(0.5);
     s.blendMode = "add";
+    // частица рождается после шага обновления и до отрисовки — без начального вида она один кадр мигает в углу (0; 0) слоя
+    const [r, g, b, a] = color.map((v) => Math.max(0, Math.min(1, v)));
+    s.position.set(x, y);
+    s.scale.set(Math.max(0, scale));
+    s.tint = ((r * 255) << 16) | ((g * 255) << 8) | (b * 255);
+    s.alpha = a;
     this.addChild(s);
     this.list.push({
       s,
       ex: e.x,
       ey: e.y,
-      x: e.x + rand(-2, 2),
-      y: e.y + rand(-2, 2),
+      x,
+      y,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       gravity: rand(c.gravity[0], c.gravity[1]),

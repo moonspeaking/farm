@@ -35,7 +35,7 @@ export class WorldMap extends Container {
       hover.visible = false;
       spot.addChild(hover);
       spot.eventMode = "static";
-      spot.cursor = "talk";
+      spot.cursor = "gather_product"; // рука, как в оригинале
       spot.on("pointerover", () => {
         if (!this.open(key)) return;
         hover.visible = true;
@@ -100,7 +100,7 @@ export class WorldMap extends Container {
   /** Закрытые места не реагируют на наведение. */
   refresh() {
     for (const p of this.places) {
-      p.spot.cursor = this.open(p.key) ? "talk" : "default";
+      p.spot.cursor = this.open(p.key) ? "gather_product" : "default";
       p.hover.visible = false;
     }
     // искры у открытых городов, где ждут персонажи с заданиями (эффект level-available-quests)
