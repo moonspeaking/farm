@@ -48,6 +48,9 @@
         // здесь ровно, без разгона и торможения: не быстрее 1/3 в секунду — экран держится минимум 3 с. fade — появление экрана за 0,2 с
         var target = 0, shown = 0, fade = 0, finished = false, alive = true, t0 = performance.now(), last = t0;
         var el = document.getElementById("loading");
+        // клик (касание) по экрану загрузки — не ждать спокойные 3 с: процент догоняет загрузку за четверть секунды
+        var rush = false;
+        el.addEventListener("pointerdown", function () { rush = true; });
         function resize() {
           var d = window.devicePixelRatio || 1;
           cv.width = innerWidth * d;
@@ -59,7 +62,7 @@
           if (!alive) return;
           var dt = Math.min((now - last) / 1000, 0.1);
           last = now;
-          if (shown < target) shown = Math.min(target, shown + dt / 3);
+          if (shown < target) shown = Math.min(target, shown + (rush ? dt * 4 : dt / 3));
           fade = Math.min(1, fade + dt * 5);
           // экран закрывается, когда загрузка закончена и показано больше 99,99 %
           if (finished && shown > 0.9999) {
@@ -114,6 +117,7 @@
             shown = 0;
             fade = 0;
             finished = false;
+            rush = false;
             t0 = last = performance.now();
             el.style.display = "block";
             resize();

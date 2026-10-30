@@ -190,6 +190,8 @@ export function dialog(
     width?: number;
     /** Сдвиг по горизонтали от центра экрана (на ферме окно по центру поля правее панели). */
     offsetX?: number;
+    /** Текст по левому краю (длинный текст без «висящих» слов в центрированных строках); по умолчанию по центру. */
+    bodyAlign?: "left" | "center";
     /** Получает функцию закрытия окна — для кнопок внутри content. */
     bind?: (close: (value: string) => void) => void;
   },
@@ -211,7 +213,9 @@ export function dialog(
       items.push(t);
     }
     if (opts.body) {
-      const t = pop(opts.body, "Verdana14", COLOR.black, { align: "center", wrap: width - 110, lineOffset: -2 });
+      const left = opts.bodyAlign === "left";
+      const t = pop(opts.body, "Verdana14", COLOR.black, { align: left ? "left" : "center", wrap: width - 110, lineOffset: -2 });
+      if (left) t.x = -(width - 110) / 2;
       t.y = y;
       y += t.textHeight + 10;
       items.push(t);
