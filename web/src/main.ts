@@ -77,6 +77,29 @@ async function main() {
   });
   window.addEventListener("resize", checkRotate);
   checkRotate();
+  // на компьютере напоминаем про клавишу F (весь экран) — как на телефоне про поворот; пропадает после входа в полноэкранный режим или по крестику
+  const fshint = document.getElementById("fshint");
+  const checkFs = () => {
+    let closed = false;
+    try {
+      closed = sessionStorage.getItem("fshint-closed") === "1";
+    } catch {
+      // без хранилища подсказка просто покажется снова
+    }
+    const desktop = innerWidth >= 700 && matchMedia("(pointer: fine)").matches && !matchMedia("(display-mode: fullscreen)").matches;
+    if (fshint) fshint.style.display = !closed && desktop && !document.fullscreenElement ? "block" : "none";
+  };
+  document.getElementById("fshint-close")?.addEventListener("click", () => {
+    try {
+      sessionStorage.setItem("fshint-closed", "1");
+    } catch {
+      // нечего запоминать
+    }
+    checkFs();
+  });
+  document.addEventListener("fullscreenchange", checkFs);
+  window.addEventListener("resize", checkFs);
+  checkFs();
   const frame = new Graphics().rect(0, 0, W, H).fill(0xffffff);
   world.addChild(frame);
   world.mask = frame;

@@ -14,9 +14,12 @@ let deferred: InstallEvent | null = null;
 let installed = false;
 
 // событие приходит иногда раньше, чем игра загрузилась, — слушаем с самого старта модуля
+let offered = false;
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferred = e as InstallEvent;
+  // Chrome присылает событие только после установки service worker (при первом заходе — когда докачается вся игра), это может быть и через минуту
+  if (offered && !installed && !standalone() && !snoozed() && !document.getElementById("install")) show(false);
 });
 window.addEventListener("appinstalled", () => {
   installed = true;
@@ -50,6 +53,7 @@ function snooze() {
 
 /** Показывает плашку «Установить игру», если приложение ещё не установлено и это возможно. Вызывается, когда игра загрузилась. */
 export function offerInstall() {
+  offered = true;
   if (installed || standalone() || snoozed() || document.getElementById("install")) return;
   // у Chrome событие может прийти чуть позже загрузки — ждём его несколько секунд
   const started = Date.now();

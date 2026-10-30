@@ -722,19 +722,6 @@ export class Farm extends Container {
     toast(this.ui, `+${n} л`, this.pail.x + 30, this.pail.y - 10);
   }
 
-  /** Днём нажатие на бочку покупает один литр воды. */
-  private tapBarrel() {
-    if (this.mode !== "day" || this.paused) return;
-    const price = this.game.buyPrice(this.rules.prices.water);
-    if (this.game.water >= this.game.waterMax) return toast(this.ui, "Бочки полны");
-    if (this.game.gold < price) return this.notEnough();
-    this.game.gold -= price;
-    this.game.water += 1;
-    audio.play("buy_water");
-    this.game.changed();
-    this.renderStorages();
-  }
-
   private renderStorages() {
     const place = (list: Filled[], levels: StorageLevel[], owned: number, base: string, content: string, mask: string, onTap?: () => void) => {
       while (list.length < owned) {
@@ -750,7 +737,7 @@ export class Farm extends Container {
         this.objects.addChild(f);
       }
     };
-    place(this.barrels, this.rules.water_storage, this.game.barrels, "barrel", "barrel_water", "barrel_mask", () => this.tapBarrel());
+    place(this.barrels, this.rules.water_storage, this.game.barrels, "barrel", "barrel_water", "barrel_mask");
     place(this.boxes, this.rules.product_storage, this.game.boxes, this.rules.box_image, this.rules.box_content_image, this.rules.box_mask_image);
     // запас делится между ёмкостями по порядку (в exe — равными долями)
     if (this.barrels.length) spread(this.barrels, this.game.waterMax ? this.game.water / this.game.waterMax : 0);

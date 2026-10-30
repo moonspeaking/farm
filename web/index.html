@@ -25,6 +25,9 @@
       #update span { flex: 1 1 100%; }
       #update button { font: inherit; font-weight: 600; padding: 7px 14px; border: 0; border-radius: 6px; background: #8fb24a; color: #14280c; cursor: pointer; }
       #update button.secondary { background: transparent; color: #e8f0c8; border: 1px solid #8fb24a; font-weight: 400; }
+      #fshint { position: fixed; left: 50%; top: 10px; transform: translateX(-50%); z-index: 20; display: none; padding: 8px 40px 8px 14px; border-radius: 8px; background: rgba(20, 40, 12, 0.88); color: #e8f0c8; font: 14px/1.3 system-ui, sans-serif; white-space: nowrap; }
+      #fshint kbd { display: inline-block; padding: 1px 7px; border: 1px solid #8fb24a; border-radius: 4px; background: rgba(143, 178, 74, 0.2); font: inherit; font-weight: 700; }
+      #fshint b { position: absolute; right: 12px; top: 5px; font-size: 20px; cursor: pointer; }
       #rotate b { position: absolute; right: 12px; top: 6px; font-size: 22px; cursor: pointer; }
       #loadcv { position: absolute; inset: 0; width: 100%; height: 100%; }
     </style>
@@ -120,6 +123,7 @@
       })();
     </script>
     <div id="game"></div>
+    <div id="fshint">Нажмите <kbd>F</kbd>, чтобы играть во весь экран<b id="fshint-close">×</b></div>
     <div id="rotate">Поверните телефон горизонтально: игра станет крупнее и читабельнее.<b id="rotate-close">×</b></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

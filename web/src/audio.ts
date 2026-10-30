@@ -13,6 +13,7 @@ class AudioManager {
   private playlist: string[] = [];
   private index = 0;
   private unlocked = false;
+  private watching = false;
   options: Options = loadOptions();
 
   /** Загружает короткие звуки (всё, кроме музыки) заранее. */
@@ -51,6 +52,7 @@ class AudioManager {
     const done = () => {
       if (this.unlocked) return;
       this.unlocked = true;
+      this.watchMusic();
       // музыку, которую браузер не дал включить сам (автовоспроизведение), запускаем с первого касания или клавиши
       if (this.playlist.length && (!this.music || this.music.paused)) this.startTrack();
     };
@@ -90,8 +92,26 @@ class AudioManager {
       this.index += 1;
       this.startTrack();
     });
+    // трек не загрузился или не декодируется — переходим к следующему, а не остаёмся без музыки
+    a.addEventListener("error", () => {
+      if (this.music !== a) return;
+      this.index += 1;
+      setTimeout(() => this.music === a && this.startTrack(), 1000);
+    });
     this.music = a;
     void a.play().catch(() => undefined);
+  }
+
+  /** Страховка: если браузер остановил музыку (автовоспроизведение, сон вкладки, сбой потока), возобновляем её, пока игра открыта. */
+  private watchMusic() {
+    if (this.watching) return;
+    this.watching = true;
+    setInterval(() => {
+      const m = this.music;
+      if (!this.unlocked || !this.playlist.length || document.hidden || this.options.music <= 0) return;
+      if (!m) return this.startTrack();
+      if (m.paused && !m.ended && !m.error) void m.play().catch(() => undefined);
+    }, 2000);
   }
 
   setOptions(o: Options) {
