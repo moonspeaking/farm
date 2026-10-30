@@ -49,7 +49,8 @@
         var bug = new Image();
         bug.src = "img/bug_" + bugName + "_move_right.webp";
         // target — реальная доля загрузки; shown догоняет её. В оригинале не быстрее dt / 5 (20 % в секунду, экран минимум 5 с) —
-        // здесь без этого замедления: доля 4 / с только сглаживает рывки между файлами. fade — появление экрана за 0,2 с
+        // здесь мягче: скорость пропорциональна отставанию (×2 в секунду), но не больше 0,5 и не меньше 0,12 в секунду —
+        // вредитель плавно тормозит к цели, при мгновенной загрузке экран держится ≈2,7 с. fade — появление экрана за 0,2 с
         var target = 0, shown = 0, fade = 0, finished = false, alive = true, t0 = performance.now(), last = t0;
         var el = document.getElementById("loading");
         function resize() {
@@ -63,7 +64,7 @@
           if (!alive) return;
           var dt = Math.min((now - last) / 1000, 0.1);
           last = now;
-          if (shown < target) shown = Math.min(target, shown + dt * 4);
+          if (shown < target) shown = Math.min(target, shown + dt * Math.max(0.12, Math.min(0.5, (target - shown) * 2)));
           fade = Math.min(1, fade + dt * 5);
           // экран закрывается, когда загрузка закончена и показано больше 99,99 %
           if (finished && shown > 0.9999) {
@@ -85,12 +86,19 @@
             bw = bug.naturalWidth;
             bh = Math.floor(bug.naturalHeight / 11);
             var bi = Math.floor((t / BUGS[bugName]) * 11) % 11;
-            ctx.drawImage(bug, 0, bi * bh, bw, bh, bx, POS_Y - Math.floor(bh / 2), bw, bh);
+            // ползёт влево, а в оригинале взята анимация move/right и вредитель пятится — отражаем её, как левые направления на ферме
+            ctx.save();
+            ctx.translate(bx + bw, POS_Y - Math.floor(bh / 2));
+            ctx.scale(-1, 1);
+            ctx.drawImage(bug, 0, bi * bh, bw, bh, 0, 0, bw, bh);
+            ctx.restore();
           }
           if (flower.complete && flower.naturalWidth) {
             var fh = Math.floor(flower.naturalHeight / 12);
             var idx = Math.min(11, Math.floor(shown * 12 + 0.001));
-            ctx.drawImage(flower, 0, idx * fh, flower.naturalWidth, fh, 356, 200, flower.naturalWidth, fh);
+            // в skin_ru.xml (356; 200), но тогда низ ромашки (с ореолом y + 85) задевает вредителя, проходящего под ней:
+            // самый высокий (etti) достаёт до y = 257. Подняли на 32 px, чтобы ни один вредитель её не касался
+            ctx.drawImage(flower, 0, idx * fh, flower.naturalWidth, fh, 356, 168, flower.naturalWidth, fh);
           }
           ctx.fillStyle = "#fff";
           ctx.font = "bold 24px Verdana, system-ui, sans-serif";
