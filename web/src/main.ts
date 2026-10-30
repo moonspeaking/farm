@@ -4,6 +4,8 @@ import { audio } from "./audio";
 import { installCursors } from "./cursors";
 import { offerInstall } from "./install";
 import { watchUpdates } from "./update";
+import { currentProfile, profiles } from "./profiles";
+import { newUserDialog, selectUserScreen } from "./users";
 import { loadParticles } from "./particles";
 import { Farm } from "./farm";
 import { Menu } from "./menu";
@@ -172,7 +174,7 @@ async function main() {
         towns[n].entered();
       },
       toMenu: () => openMenu(f),
-      dayEnded: () => recordScore(rules, "Айрис", g.day, g.gold, false),
+      dayEnded: () => recordScore(rules, profiles().find((p) => p.id === g.profile)?.name ?? "Айрис", g.day, g.gold, false),
     });
     const quests = new QuestEngine(lr.quests, g, {
       removeAllVegetations: () => f.removeAllPlants(),
@@ -225,6 +227,8 @@ async function main() {
     highscores: () => highscoresScreen(world, rules, () => undefined),
     about: () => void aboutScreen(world, rules),
     play: (fresh) => void start(fresh),
+    userName: () => currentProfile()?.name ?? null,
+    changeUser: () => selectUserScreen(world, rules, () => menu.refreshUser()),
   });
   const start = async (fresh: boolean) => {
     if (fresh) Game.clearSave();
@@ -256,6 +260,11 @@ async function main() {
   };
   world.addChild(menu);
   show(menu);
+  // как в оригинале: без игрока сначала спрашиваем имя (старое сохранение достанется этому игроку)
+  if (!currentProfile()) {
+    if (profiles().length) selectUserScreen(world, rules, () => menu.refreshUser());
+    else void newUserDialog(world, rules, false).then(() => menu.refreshUser());
+  }
   if (import.meta.env.DEV) Object.assign(window, { __game: { app, get farm() { return curFarm(); }, get town() { return curTown(); }, get game() { return game; }, get map() { return worldMap; }, enter: (n: number, scene: "farm" | "town") => game && enter(game, n, scene), menu, has: (names: string[]) => hasImages(names) } });
 
   // пауза: пробел — «Пауза», Esc и кнопка «Меню» — меню игры; пока висит любое из них, игровые таймеры (и Робин) стоят

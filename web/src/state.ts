@@ -1,6 +1,7 @@
 // Состояние фермы, опыт и умения Айрис, заказы на букеты; сохранение между запусками.
 import { newQuestState, QuestState } from "./quests";
 import { locationRules } from "./rules";
+import { currentProfile, saveKey } from "./profiles";
 import type { Rules } from "./rules";
 
 export interface PlantSave {
@@ -169,6 +170,9 @@ export class Game {
   tutorial: string[] = [];
   weather: Weather = "normal";
   private listeners: Listener[] = [];
+
+  /** Игрок, чья это игра: сохраняется только в его запись, даже если в меню выбрали другого. */
+  readonly profile = currentProfile()?.id ?? "0";
 
   constructor(readonly base: Rules) {
     this.gold = base.start.gold;
@@ -352,15 +356,18 @@ export class Game {
       questStates: this.questStates, world: this.world, marks: this.marks, items: this.items, bugItems: this.bugItems,
     };
     try {
-      localStorage.setItem(KEY3, JSON.stringify(data));
+      localStorage.setItem(saveKey(KEY3, this.profile), JSON.stringify(data));
     } catch {
       // без хранилища (приватный режим) игра просто не сохраняется
     }
   }
 
+  /** Есть ли сохранение у текущего игрока. */
   static hasSave() {
+    const id = currentProfile()?.id;
+    if (!id) return false;
     try {
-      return !!(localStorage.getItem(KEY3) ?? localStorage.getItem(KEY));
+      return !!(localStorage.getItem(saveKey(KEY3, id)) ?? localStorage.getItem(saveKey(KEY, id)));
     } catch {
       return false;
     }
@@ -368,7 +375,7 @@ export class Game {
 
   load(): boolean {
     try {
-      const raw3 = localStorage.getItem(KEY3);
+      const raw3 = localStorage.getItem(saveKey(KEY3, this.profile));
       if (raw3) {
         const s = JSON.parse(raw3) as SaveV3;
         if (s.version !== 3) return false;
@@ -383,7 +390,7 @@ export class Game {
         return true;
       }
       // сохранение первой версии (одна ферма)
-      const raw = localStorage.getItem(KEY);
+      const raw = localStorage.getItem(saveKey(KEY, this.profile));
       const s = raw ? (JSON.parse(raw) as Save) : null;
       if (s?.version !== 2) return false;
       Object.assign(this, {
@@ -413,10 +420,13 @@ export class Game {
     }
   }
 
+  /** Новая игра текущего игрока: его сохранение стирается. */
   static clearSave() {
+    const id = currentProfile()?.id;
+    if (!id) return;
     try {
-      localStorage.removeItem(KEY);
-      localStorage.removeItem(KEY3);
+      localStorage.removeItem(saveKey(KEY, id));
+      localStorage.removeItem(saveKey(KEY3, id));
     } catch {
       // нечего удалять
     }

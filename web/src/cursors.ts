@@ -27,4 +27,7 @@ export function applyCursors(enabled: boolean) {
     styles[name] = enabled ? `url(cursors/${name}.png) ${x} ${y}, ${name === "normal" ? "default" : "pointer"}` : name === "normal" ? "default" : "pointer";
   }
   styles.default = styles.normal;
+  // у кнопок и перетаскиваемых цветов в оригинале своего курсора нет — обычная стрелка, а не системная белая рука
+  styles.pointer = enabled ? styles.normal : "pointer";
+  styles.grab = enabled ? styles.normal : "grab";
 }

@@ -158,6 +158,8 @@ export interface Rules {
     game_menu: Record<string, string>;
     pause: Record<string, string>;
     highscores: Record<string, string>;
+    /** Игроки: подтверждение удаления и приветствие в главном меню (ru.xml delete_confirmation, main_change_user). */
+    users?: Record<string, string>;
   };
 }
 

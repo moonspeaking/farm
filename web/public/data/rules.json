@@ -2286,6 +2286,10 @@
    "spirit": "Призрак",
    "spirit_2": "Сильный Призрак с Гирей",
    "spirit_no_armour": "Сильный Призрак"
+  },
+  "users": {
+   "delete_confirmation": "Удалить игрока %name%?",
+   "main_change_user": "Приветствую, %name%, если это не Вы, нажмите сюда"
   }
  },
  "quests": {
@@ -13711,6 +13715,7 @@
   "map_town_3",
   "map_town_4",
   "menu_bg",
+  "new_user_bg",
   "nopal_1",
   "nopal_2",
   "nopal_3",
@@ -13774,6 +13779,7 @@
   "rose_2",
   "rose_3",
   "round_button",
+  "select_user_bg",
   "ship",
   "shop_medium",
   "shop_medium_cant",

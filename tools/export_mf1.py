@@ -98,6 +98,8 @@ IMAGES = {
     "options_check_off": "options/normal-normal",
     "in_game": "highscores/in_game",
     "highscores_bg": "highscores/highscores_background",
+    "select_user_bg": "select_user/select_user",
+    "new_user_bg": "select_user/new_user",
 }
 SEEDS_STAGES = ("", "_2", "_3")
 DIRECTIONS = ("down", "right", "right_down", "right_up", "up")
@@ -553,6 +555,8 @@ def main():
         "game_menu": {c.tag: c.attrib.get("label", "") for c in ru.find("button") if c.tag.startswith("game_menu")},
         "pause": dict(ru.find("pause").attrib),
         "highscores": dict(ru.find("highscores").attrib),
+        "users": {"delete_confirmation": ru.find("delete_confirmation").attrib["text"],
+                  "main_change_user": ru.find("main_change_user").attrib["text"]},
     }
 
     # ---------------- квесты первой локации: логика + тексты, связанные по порядку реплик

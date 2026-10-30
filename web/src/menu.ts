@@ -1,8 +1,10 @@
 // Главное меню (main_menu) и вступительный комикс (first_comics).
 import { Container, Graphics } from "pixi.js";
+import type { PopLabel } from "./popfont";
+import { rgb } from "./popfont";
 import type { Rules } from "./rules";
 import { fmt } from "./rules";
-import { dialog, H, image, roundButton, textButton, W } from "./ui";
+import { dialog, H, image, pop, roundButton, textButton, W } from "./ui";
 
 export interface MenuEvents {
   play(fresh: boolean): void;
@@ -10,6 +12,9 @@ export interface MenuEvents {
   options(): void;
   highscores(): void;
   about(): void;
+  /** Имя текущего игрока и переход к выбору игрока (main_change_user). */
+  userName(): string | null;
+  changeUser(): void;
 }
 
 /**
@@ -33,6 +38,7 @@ const COMICS_BUTTON_FADE = 0.6;
 
 export class Menu extends Container {
   private readonly overlay = new Container();
+  private greeting: PopLabel | null = null;
 
   constructor(private readonly rules: Rules, private readonly events: MenuEvents) {
     super();
@@ -52,7 +58,27 @@ export class Menu extends Container {
     item("Об игре", 130, 295, 201, () => this.events.about()); // на 2 px ниже остальных: так надпись ровно по центру таблички
     // вместо «Выйти» (в браузере и PWA игра сама закрыться не может) — свиток «Об игре» выше, «Результаты» на последней табличке
     item(b.menu_highscores || "Результаты", 130, 349, 201, () => this.events.highscores(), true);
+    this.refreshUser();
     this.addChild(this.overlay);
+  }
+
+  /** «Приветствую, %name%, если это не Вы, нажмите сюда» вверху меню (main_menu/logoff: y 0, цвет 250;150;0, при наведении 255;200;50). */
+  refreshUser() {
+    this.greeting?.destroy();
+    this.greeting = null;
+    const name = this.events.userName();
+    if (!name) return;
+    const normal = rgb(250, 150, 0);
+    const active = rgb(255, 200, 50);
+    const l = pop(fmt(this.rules.texts.users?.main_change_user ?? "Приветствую, %name%, если это не Вы, нажмите сюда", { name }), "rubius_24", normal, { align: "center" });
+    l.position.set(W / 2, 4);
+    l.eventMode = "static";
+    l.cursor = "pointer";
+    l.on("pointerover", () => l.setColor(active));
+    l.on("pointerout", () => l.setColor(normal));
+    l.on("pointertap", () => this.events.changeUser());
+    this.greeting = l;
+    this.addChildAt(l, this.children.indexOf(this.overlay) >= 0 ? this.children.indexOf(this.overlay) : this.children.length);
   }
 
   private async adventure() {
