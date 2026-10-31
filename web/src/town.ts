@@ -5,7 +5,7 @@ import type { QuestEngine } from "./quests";
 import type { Rules } from "./rules";
 import type { Game } from "./state";
 import { Talk } from "./talk";
-import type { Tutorial } from "./tutorial";
+import { Reminder, type Tutorial } from "./tutorial";
 import { COLOR, image, pop, roundButton, toast } from "./ui";
 
 export interface TownEvents {
@@ -21,6 +21,7 @@ export class Town extends Container {
   private readonly people: Record<string, Container[]> = {};
   private readonly overlay = new Container();
   private busy = false;
+  private readonly reminder = new Reminder();
   private readonly hud: Hud;
   private readonly nameTip = new Container();
 
@@ -79,6 +80,8 @@ export class Town extends Container {
 
   update(dt: number) {
     this.hud.tick(dt);
+    // «Нажмите сюда для перехода на ферму» каждые 10 с, пока в городе нечем заняться (exe 0x492b40)
+    this.reminder.tick(dt, this.tut, !this.busy, () => this.tut.show("town_show_farm_baloon", 630, 60, true));
   }
 
   /** Плашка с именем у курсора: тёмно-зелёная, белый жирный текст (на скриншоте оригинала). */

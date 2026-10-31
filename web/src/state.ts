@@ -2,6 +2,7 @@
 import { newQuestState, QuestState } from "./quests";
 import { locationRules } from "./rules";
 import { currentProfile, saveKey } from "./profiles";
+import type { ArriverState } from "./bugs";
 import type { Rules } from "./rules";
 
 export interface PlantSave {
@@ -165,6 +166,8 @@ export class Game {
   /** Предметы квестов (ракушки, дубинки…) и сколько их ещё может выпасть из вредителей — общие для локаций. */
   items: Record<string, number> = {};
   bugItems: Record<string, number> = {};
+  /** Волны вредителей по локациям (BugArriver фермы): живут, пока идёт игра, в сохранение не пишутся — как в exe. */
+  arrivers: Record<number, ArriverState> = {};
   loc = 1;
   bouquets: { next: number; orders: BouquetOrder[]; done: number } = { next: 0, orders: [], done: 0 };
   tutorial: string[] = [];
@@ -241,15 +244,15 @@ export class Game {
   }
 
   /**
-   * Допущение: capacity уровня в location_1.xml — общая вместимость после покупки этого уровня
-   * (8 → 10 → 12 литров, 15 → 20 → 25 плодов), а не прибавка.
+   * Каждая бочка и каждый ящик — отдельный объект, их capacity складываются: покупка уровня прибавляет его вместимость
+   * (exe: 0x4445d0 → 0x40f490 для воды, 0x433490 → 0x40f470 для склада). Ферма 1: 8 → 18 → 30 литров, 15 → 35 → 60 плодов.
    */
   get waterMax() {
-    return this.rules.water_storage[this.barrels - 1]?.capacity ?? 0;
+    return this.rules.water_storage.slice(0, this.barrels).reduce((a, l) => a + l.capacity, 0);
   }
 
   get storageMax() {
-    return this.rules.product_storage[this.boxes - 1]?.capacity ?? 0;
+    return this.rules.product_storage.slice(0, this.boxes).reduce((a, l) => a + l.capacity, 0);
   }
 
   storageCount() {

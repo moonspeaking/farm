@@ -2,7 +2,7 @@
 import { Container, Graphics, Rectangle } from "pixi.js";
 import type { Rules } from "./rules";
 import type { Game } from "./state";
-import type { Tutorial } from "./tutorial";
+import { Reminder, type Tutorial } from "./tutorial";
 import { type Emitter, ParticleLayer } from "./particles";
 import { COLOR, image, pop, W } from "./ui";
 
@@ -20,6 +20,7 @@ export class WorldMap extends Container {
   private readonly tipBack = new Graphics();
   private readonly fx = new ParticleLayer();
   private sparks: Emitter[] = [];
+  private readonly reminder = new Reminder();
 
   constructor(private readonly rules: Rules, private readonly game: Game, private readonly events: MapEvents, private readonly tut: Tutorial) {
     super();
@@ -95,6 +96,11 @@ export class WorldMap extends Container {
 
   update(dt: number) {
     this.fx.update(dt);
+    // «Нажмите сюда для перехода в город» каждые 10 с (exe 0x479170): у города локации, где сейчас игра
+    this.reminder.tick(dt, this.tut, true, () => {
+      const town = this.rules.global_map[`town_${this.game.loc}`] ?? this.rules.global_map.town_1;
+      this.tut.show("global_map_show_town_baloon", town.position[0] + town.dimensions[0] / 2 - 8, town.position[1] + town.dimensions[1] / 2 - 4, true);
+    });
   }
 
   /** Закрытые места не реагируют на наведение. */

@@ -14,6 +14,22 @@ function forDevice(text: string) {
     .replace(/левую кнопку мыши/g, "палец");
 }
 
+/**
+ * Напоминание экрана (exe: таймер 10 с в конструкторе экрана — 0x479ff0 карта, город и магазин так же; обновление
+ * 0x479170 / 0x492b40 / 0x48e960): пока не открыта подсказка, таймер убывает, на нуле показывается пузырь и отсчёт снова 10 с.
+ */
+export class Reminder {
+  private left = 10;
+
+  tick(dt: number, tut: Tutorial, ready: boolean, show: () => void) {
+    if (!ready || tut.active) return;
+    this.left -= dt;
+    if (this.left > 0) return;
+    this.left = 10;
+    show();
+  }
+}
+
 /** Пузыри экрана подготовки (ShopScreenFarm): держатся, пока игрок не сделает действие. */
 const SHOP_BALLOONS = new Set(["first_vegetation", "sell_prod", "buy_water"]);
 
@@ -26,11 +42,16 @@ export class Tutorial extends Container {
   /** Снимает слушатель нажатия вне подсказки (для подсказок без затемнения). */
   private offClick: (() => void) | null = null;
 
-  /** Подсказка не гаснет сама, а ждёт нажатия (в течение дня, пока игра на паузе). */
-  holdOpen = false;
+  /** Сейчас открыто окно с затемнением (exe: пока оно открыто, экран игры не обновляет мир — игра стоит, 0x476cd0). */
+  private modal = false;
 
   get active() {
     return this.children.length > 0;
+  }
+
+  /** Подсказка ставит игру на паузу: окно с затемнением; простые пузыри идут вместе с игрой. */
+  get blocking() {
+    return this.active && this.modal;
   }
 
   constructor(private readonly rules: Rules, private readonly game: Game, private readonly enabled: () => boolean) {
@@ -121,6 +142,7 @@ export class Tutorial extends Container {
     this.addChild(box);
     // окно с затемнением (0x495850) таймера не имеет — висит до «Закрыть»; так же пузыри магазина, пока не сделано действие.
     // Простой пузырь TutorialLayer (без затемнения) живёт 10 с (0x41200000 в 0x476a40)
+    this.modal = !!step?.image;
     this.life = step?.image || SHOP_BALLOONS.has(id) ? Infinity : 10;
     // подсказка исчезает, как только игрок нажал или сделал действие (следующее нажатие)
     const onDown = () => this.hide();
@@ -154,7 +176,7 @@ export class Tutorial extends Container {
   }
 
   update(dt: number) {
-    if (this.life > 0 && !this.holdOpen) {
+    if (this.life > 0) {
       this.life -= dt;
       if (this.life <= 0) this.hide();
     }

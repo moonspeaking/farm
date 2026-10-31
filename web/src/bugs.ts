@@ -524,28 +524,51 @@ export class Helper extends Actor {
   }
 }
 
-/** Появление вредителей по волнам bug_arriver: волна на день, группы идут друг за другом. */
+/** Состояние BugArriver одной фермы: живёт, пока идёт игра (между днями не сбрасывается, при загрузке начинается заново). */
+export interface ArriverState {
+  /** Номер следующей волны. */
+  next: number;
+  /** До начала следующей волны, с. */
+  wait: number;
+  /** Группы текущей волны: ещё не вышедшие вредители и пауза после группы. */
+  groups: { bugs: string[]; delay: number; wait: number }[];
+}
+
+export function newArriverState(): ArriverState {
+  return { next: 0, wait: 0, groups: [] };
+}
+
+/**
+ * Появление вредителей по волнам bug_arriver (exe: BugArriver, обновление 0x40ced0, запуск волны 0x40cda0).
+ * Волны идут по кругу, а не по одной на день. У группы все вредители выходят сразу (по одному за кадр, в случайном
+ * порядке), затем пауза delay группы. Когда группы кончились, ждём delay волны — но только пока на поле нет вредителей
+ * (0x40f570) — и запускаем следующую. Паузы волны и группы умножаются на whether/bug_arrive (в дождь 0,8 — чаще).
+ */
 export class BugArriver {
-  private queue: { at: number; bugs: string[] }[] = [];
-  private time = 0;
+  constructor(private readonly state: ArriverState) {}
 
-  /** arrive — множитель whether/bug_arrive: при дожде (0,8) вредители приходят реже, паузы длиннее. */
-  startDay(rules: Rules, day: number, arrive = 1) {
-    const wave = rules.waves[Math.min(day - 1, rules.waves.length - 1)] ?? [];
-    this.time = 0;
-    this.queue = [];
-    let at = 0;
-    for (const g of wave) {
-      if (g.bugs.length) this.queue.push({ at, bugs: g.bugs });
-      at += g.delay / Math.max(0.1, arrive);
+  /** Имя вредителя, которому пора появиться (не больше одного за кадр), или null. */
+  tick(rules: Rules, dt: number, fieldEmpty: boolean, arrive: number): string | null {
+    const s = this.state;
+    const g = s.groups[0];
+    if (!g) {
+      if (!fieldEmpty) return null;
+      s.wait -= dt;
+      if (s.wait > 0) return null;
+      if (s.next >= rules.waves.length) s.next = 0;
+      const wave = rules.waves[s.next] ?? [];
+      s.wait = (rules.wave_delays?.[s.next] ?? 0) * arrive;
+      s.groups = wave.map((x) => ({ bugs: [...x.bugs], delay: x.delay, wait: x.delay }));
+      s.next += 1;
+      return null;
     }
-  }
-
-  /** Имена вредителей, которым пора появиться. */
-  tick(dt: number): string[] {
-    this.time += dt;
-    const out: string[] = [];
-    while (this.queue.length && this.queue[0].at <= this.time) out.push(...this.queue.shift()!.bugs);
-    return out;
+    if (!g.bugs.length) {
+      g.wait -= dt;
+      if (g.wait <= 0) s.groups.shift();
+      return null;
+    }
+    const name = g.bugs.splice(Math.floor(Math.random() * g.bugs.length), 1)[0];
+    if (!g.bugs.length) g.wait = g.delay * arrive;
+    return name;
   }
 }

@@ -4,7 +4,7 @@ import { audio } from "./audio";
 import { BouquetScreen } from "./bouquets";
 import { PathGrid } from "./pathgrid";
 import { continueDayOverlay } from "./screens";
-import { Bug, BugArriver, Helper } from "./bugs";
+import { Bug, BugArriver, Helper, newArriverState } from "./bugs";
 import { Hud } from "./hud";
 import { efficiencyRaised, productivityRaised } from "./names";
 import { LevelUp } from "./levelup";
@@ -13,7 +13,7 @@ import { rgb } from "./popfont";
 import { family, RidgeView } from "./ridge";
 import { fmt, Place, Rules, StorageLevel } from "./rules";
 import type { Game, PlantSave, Weather } from "./state";
-import { Tutorial } from "./tutorial";
+import { Reminder, Tutorial } from "./tutorial";
 import { COLOR, dialog, floatPoints, H, image, pop, roundButton, shopButton, type ShopButton, tex, textButton, toast, W } from "./ui";
 
 /** Шаги обучения, уже сдвинутые под перенесённые кнопки. */
@@ -134,7 +134,10 @@ export class Farm extends Container {
   private expToday = 0;
   private lastTick = -1;
   private bugs: Bug[] = [];
-  private readonly arriver = new BugArriver();
+  /** «Нажмите эту кнопку для начала дня» каждые 10 с, когда растение уже куплено (exe 0x48e960, метка first_vegetation). */
+  private readonly startReminder = new Reminder();
+  // состояние волн хранится в игре (по локации): между днями и при уходе с фермы не сбрасывается
+  private readonly arriver: BugArriver;
   private helper: Helper | null = null;
   /** Колодец: секунды до готовности следующего ведра. */
   /** Колодец (WellControl, 0x4afac0): пауза после использования и наполнение ведра в секундах (0 … fill_time). */
@@ -159,6 +162,7 @@ export class Farm extends Container {
 
   constructor(private readonly rules: Rules, private readonly game: Game, private readonly events: FarmEvents) {
     super();
+    this.arriver = new BugArriver((game.arrivers[rules.location] ??= newArriverState()));
     const t = rules.texts;
     this.addChild(image(rules.bg_image), this.objects, this.weatherFx, this.shopLayer, this.top, this.screens, (this.tutorial = new Tutorial(rules, game, () => audio.options.warnings)));
     this.hud = new Hud(rules, game, { openLevelUp: () => this.openLevelUp(), menu: () => this.openMenu() });
@@ -176,7 +180,10 @@ export class Farm extends Container {
     this.well.on("pointerover", () => this.setBuyTarget("well"));
     // вода в ведре — тот же Filled, что у бочки: картинка воды опускается на pail_height при пустом ведре (0x40d110)
     this.pail = new Filled("pail", "pail_water", "pail_mask", rules.well.pail_height);
-    this.pail.position.set(wl.pail.position[0] - 14, wl.pail.position[1] - 26);
+    // картинка ведра 70 × 60 стоит в skin_ru.xml → game_screen/well_ctrl/well_pail_00: 240; 440 (exe 0x4146b0 берёт её по имени ведра) —
+    // на 10 px левее и на 30 px выше препятствия ведра. Имя ведра на всех фермах одно, а на ферме 3 колодец сдвинут, поэтому
+    // сдвиг считаем от препятствия: на фермах 1, 2, 4 это ровно 240; 440, на ферме 3 ведро остаётся у колодца
+    this.pail.position.set(wl.pail.position[0] - 10, wl.pail.position[1] - 30);
     this.pail.level = 1;
     this.pail.sortKey = this.well.y + this.well.height + 1; // ведро стоит у колодца и рисуется поверх его картинки
     this.pail.eventMode = "static";
@@ -310,7 +317,6 @@ export class Farm extends Container {
     this.weatherFx.set(w);
     this.weatherIcon.texture = tex(w === "normal" ? "weather_normal" : `weather_${w}`);
     this.weatherIcon.x = 111 - this.weatherIcon.width;
-    this.arriver.startDay(this.rules, this.game.day, this.rules.weather[w]?.bug_arrive ?? 1);
     for (const rid of this.ridges) {
       rid.resetThirst();
       rid.setDay(true);
@@ -404,12 +410,14 @@ export class Farm extends Container {
   update(dt: number) {
     this.hud.blinkOn = this.mode !== "day"; // умения улучшаются только между днями — днём рамка не мигает
     this.hud.tick(dt);
-    // в течение дня подсказка ставит игру на паузу до нажатия: вредители и таймеры стоят, подсказка не гаснет сама
-    const waiting = this.mode === "day" && this.tutorial.active;
-    this.tutorial.holdOpen = this.mode === "day";
+    // днём окно подсказки с затемнением ставит игру на паузу до «Закрыть» (exe 0x476cd0); простой пузырь — нет, он гаснет через 10 с
+    const waiting = this.mode === "day" && this.tutorial.blocking;
     this.tutorial.update(dt);
     this.bouquets?.update(dt);
     if (this.paused || waiting) return;
+    if (this.mode !== "day" && !this.bouquets && this.startBtn.visible) {
+      this.startReminder.tick(dt, this.tutorial, this.game.tutorial.includes("@first_vegetation"), () => this.tutorial.show("start_day_baloon", 630, 70, true));
+    }
     this.weatherFx.update(dt);
     // Робин работает только в течение дня, между днями его на ферме нет
     if (this.helper) this.helper.visible = this.mode === "day";
@@ -418,7 +426,8 @@ export class Farm extends Container {
     if (this.endPrompt) return;
     for (const r of this.ridges) r.update(dt);
     // disable_bug_wave: отключённые квестом вредители не появляются
-    for (const name of this.arriver.tick(dt)) if (!this.game.quests.bugsOff?.includes(name)) this.spawnBug(name);
+    const name = this.arriver.tick(this.rules, dt, !this.bugs.some((b) => !b.dead), this.rules.weather[this.game.weather]?.bug_arrive ?? 1);
+    if (name && !this.game.quests.bugsOff?.includes(name)) this.spawnBug(name);
     for (const b of this.bugs) {
       b.update(dt);
       // вредитель через 3 с после появления ставит в очередь подсказку «Это вредитель» (exe: таймер +0x3c = 3 в конструкторе Bug, 0x405a2c)
