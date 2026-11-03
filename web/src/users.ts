@@ -99,7 +99,7 @@ export function selectUserScreen(parent: Container, rules: Rules, onClose: () =>
   header.position.set(175, 35); // header_pos 100; 35 — по центру окна
   box.addChild(header);
 
-  // list_box (97; 80) 160 × 228, шрифт comic_18; выбранная строка — заливка 0; 0; 128 и белый текст
+  // list_box (97; 80) 160 × 228, шрифт comic_18; выбранная строка — белый текст на тёмно-зелёной заливке (в оригинале синяя 0; 0; 128, не подходит к игре)
   const ROW = 25;
   const VISIBLE = Math.floor(228 / ROW);
   const list = new Container();
@@ -117,9 +117,9 @@ export function selectUserScreen(parent: Container, rules: Rules, onClose: () =>
       const row = new Container();
       row.y = i * ROW;
       const on = u.id === selected;
-      row.addChild(new Graphics().rect(0, 0, 160, ROW - 1).fill({ color: 0x000080, alpha: on ? 1 : 0.001 }));
+      row.addChild(new Graphics().rect(0, 0, 160, ROW - 1).fill({ color: 0x3a6a22, alpha: on ? 1 : 0.001 }));
       const l = pop(u.name, "comic_18", on ? COLOR.white : rgb(60, 36, 12), { scale: 0.9 });
-      l.position.set(6, 2);
+      l.position.set(6, -2); // выше, чтобы буквы не упирались в нижний край строки
       row.addChild(l);
       row.eventMode = "static";
       row.cursor = "pointer";
