@@ -1,12 +1,13 @@
 // Предложение установить игру как приложение (PWA): значок на рабочем столе, запуск без адресной строки, работа без сети.
 // Chrome, Edge, Samsung Internet дают событие beforeinstallprompt; Safari на iPhone/iPad его не знает — показываем подсказку, как добавить вручную.
 
+import { KEYS, store } from "./storage";
+
 interface InstallEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-const KEY = "install-asked";
 /** После отказа не напоминаем столько дней. */
 const SNOOZE_DAYS = 14;
 
@@ -35,20 +36,12 @@ const standalone = () =>
 const ios = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 function snoozed() {
-  try {
-    const t = Number(localStorage.getItem(KEY));
-    return t > 0 && Date.now() - t < SNOOZE_DAYS * 86400_000;
-  } catch {
-    return false;
-  }
+  const t = Number(store.get(KEYS.installAsked));
+  return t > 0 && Date.now() - t < SNOOZE_DAYS * 86400_000;
 }
 
 function snooze() {
-  try {
-    localStorage.setItem(KEY, String(Date.now()));
-  } catch {
-    /* без хранилища напомним в следующий раз */
-  }
+  store.set(KEYS.installAsked, String(Date.now()));
 }
 
 /** Показывает плашку «Установить игру», если приложение ещё не установлено и это возможно. Вызывается, когда игра загрузилась. */

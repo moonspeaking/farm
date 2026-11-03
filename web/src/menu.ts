@@ -4,7 +4,7 @@ import type { PopLabel } from "./popfont";
 import { rgb } from "./popfont";
 import type { Rules } from "./rules";
 import { fmt } from "./rules";
-import { dialog, H, image, pop, roundButton, textButton, W } from "./ui";
+import { H, image, pop, roundButton, textButton, W } from "./ui";
 
 export interface MenuEvents {
   play(fresh: boolean): void;
@@ -52,7 +52,7 @@ export class Menu extends Container {
       l.position.set(x + w / 2, y + 20);
       this.addChild(l);
     };
-    item(b.game_adventure || "Кампания", 147, 186, 155, () => void this.adventure());
+    item(b.game_adventure || "Кампания", 147, 186, 155, () => this.adventure());
     item(b.options || "Опции", 180, 239, 96, () => this.events.options());
     // «Об игре» на третьей табличке, «Результаты» на последней (табличка одинаковой ширины, поле w — как у «Результатов» в XML)
     item("Об игре", 130, 295, 201, () => this.events.about()); // на 2 px ниже остальных: так надпись ровно по центру таблички
@@ -81,23 +81,10 @@ export class Menu extends Container {
     this.addChildAt(l, this.children.indexOf(this.overlay) >= 0 ? this.children.indexOf(this.overlay) : this.children.length);
   }
 
-  private async adventure() {
-    const t = this.rules.texts;
-    if (!this.events.hasSave()) return this.comics();
-    const r = await dialog(this.overlay, {
-      body: fmt(t.new_game.text),
-      buttons: [
-        { text: t.buttons_menu.new_game || "Новая Игра", value: "new" },
-        { text: t.buttons_menu.continue_game || "Продолжить", value: "continue" }, // справа: основное действие, легко не спутать с новой игрой
-      ],
-    });
-    if (r === "continue") return this.events.play(false);
-    if (r !== "new") return;
-    const ok = await dialog(this.overlay, {
-      body: fmt(t.new_game.confirmation),
-      buttons: [{ text: t.buttons.yes || "Да", value: "ok" }, { text: t.buttons.no || "Нет", value: "no" }],
-    });
-    if (ok === "ok") this.comics();
+  /** Есть сохранение игрока — продолжаем сразу; нет — комикс и новая игра. Начать заново можно, удалив игрока и создав нового. */
+  private adventure() {
+    if (this.events.hasSave()) this.events.play(false);
+    else this.comics();
   }
 
   /** Комикс о письме слуги — перед началом новой игры. Кадры появляются по очереди; щелчок показывает следующий (или все оставшиеся сразу). */

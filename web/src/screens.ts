@@ -3,6 +3,7 @@ import { Container, Graphics, Rectangle } from "pixi.js";
 import { audio } from "./audio";
 import { rgb } from "./popfont";
 import type { Rules } from "./rules";
+import { KEYS, store } from "./storage";
 import { COLOR, dialog, H, image, pop, roundButton, textButton, W } from "./ui";
 
 function shade(onTap?: () => void) {
@@ -173,16 +174,8 @@ export interface Score {
   current?: boolean;
 }
 
-const SCORES_KEY = "iris-farm-scores";
-
 export function loadScores(rules: Rules): Score[] {
-  try {
-    const raw = JSON.parse(localStorage.getItem(SCORES_KEY) ?? "null") as Score[] | null;
-    if (raw) return raw;
-  } catch {
-    // без хранилища показываем стандартную таблицу
-  }
-  return rules.default_scores.map((s) => ({ ...s }));
+  return store.getJson<Score[]>(KEYS.scores) ?? rules.default_scores.map((s) => ({ ...s }));
 }
 
 /** Записывает результат игры в таблицу (одна запись на игру); возвращает таблицу. */
@@ -191,11 +184,7 @@ export function recordScore(rules: Rules, name: string, days: number, money: num
   table.push({ name, days, money, current: !finished });
   table.sort((a, b) => b.money - a.money || b.days - a.days);
   const top = table.slice(0, 10);
-  try {
-    localStorage.setItem(SCORES_KEY, JSON.stringify(top));
-  } catch {
-    // нечего сохранять
-  }
+  store.setJson(KEYS.scores, top);
   return top;
 }
 

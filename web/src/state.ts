@@ -1,7 +1,8 @@
 // Состояние фермы, опыт и умения Айрис, заказы на букеты; сохранение между запусками.
 import { newQuestState, QuestState } from "./quests";
 import { locationRules } from "./rules";
-import { currentProfile, saveKey } from "./profiles";
+import { currentProfile } from "./profiles";
+import { KEYS, saveKey, store } from "./storage";
 import type { ArriverState } from "./bugs";
 import type { Rules } from "./rules";
 
@@ -99,9 +100,6 @@ interface Save {
   tutorial: string[];
 }
 
-const KEY = "iris-farm-save-v2";
-const KEY3 = "iris-farm-save-v3";
-const OPTIONS_KEY = "iris-farm-options";
 
 type Listener = () => void;
 
@@ -118,19 +116,11 @@ export interface Options {
 
 export function loadOptions(): Options {
   const def: Options = { music: 0.5, sound: 0.7, cursors: true, warnings: true, dayStats: false, sparkles: true };
-  try {
-    return { ...def, ...(JSON.parse(localStorage.getItem(OPTIONS_KEY) ?? "{}") as Partial<Options>) };
-  } catch {
-    return def;
-  }
+  return { ...def, ...(store.getJson<Partial<Options>>(KEYS.options) ?? {}) };
 }
 
 export function saveOptions(o: Options) {
-  try {
-    localStorage.setItem(OPTIONS_KEY, JSON.stringify(o));
-  } catch {
-    // без хранилища настройки просто не запоминаются
-  }
+  store.setJson(KEYS.options, o);
 }
 
 export class Game {
@@ -358,27 +348,19 @@ export class Game {
       tutorial: this.tutorial, loc: this.loc, farms: { ...this.farms, [this.loc]: this.snapshot(plants) },
       questStates: this.questStates, world: this.world, marks: this.marks, items: this.items, bugItems: this.bugItems,
     };
-    try {
-      localStorage.setItem(saveKey(KEY3, this.profile), JSON.stringify(data));
-    } catch {
-      // без хранилища (приватный режим) игра просто не сохраняется
-    }
+    store.setJson(saveKey(KEYS.saveV3, this.profile), data);
   }
 
   /** Есть ли сохранение у текущего игрока. */
   static hasSave() {
     const id = currentProfile()?.id;
     if (!id) return false;
-    try {
-      return !!(localStorage.getItem(saveKey(KEY3, id)) ?? localStorage.getItem(saveKey(KEY, id)));
-    } catch {
-      return false;
-    }
+    return !!(store.get(saveKey(KEYS.saveV3, id)) ?? store.get(saveKey(KEYS.saveV2, id)));
   }
 
   load(): boolean {
     try {
-      const raw3 = localStorage.getItem(saveKey(KEY3, this.profile));
+      const raw3 = store.get(saveKey(KEYS.saveV3, this.profile));
       if (raw3) {
         const s = JSON.parse(raw3) as SaveV3;
         if (s.version !== 3) return false;
@@ -393,7 +375,7 @@ export class Game {
         return true;
       }
       // сохранение первой версии (одна ферма)
-      const raw = localStorage.getItem(saveKey(KEY, this.profile));
+      const raw = store.get(saveKey(KEYS.saveV2, this.profile));
       const s = raw ? (JSON.parse(raw) as Save) : null;
       if (s?.version !== 2) return false;
       Object.assign(this, {
@@ -427,11 +409,7 @@ export class Game {
   static clearSave() {
     const id = currentProfile()?.id;
     if (!id) return;
-    try {
-      localStorage.removeItem(saveKey(KEY, id));
-      localStorage.removeItem(saveKey(KEY3, id));
-    } catch {
-      // нечего удалять
-    }
+    store.remove(saveKey(KEYS.saveV2, id));
+    store.remove(saveKey(KEYS.saveV3, id));
   }
 }

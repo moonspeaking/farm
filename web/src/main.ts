@@ -5,6 +5,7 @@ import { installCursors } from "./cursors";
 import { offerInstall } from "./install";
 import { watchUpdates } from "./update";
 import { currentProfile, profiles } from "./profiles";
+import { requestPersistence, sessionFlag } from "./storage";
 import { newUserDialog, selectUserScreen } from "./users";
 import { loadParticles } from "./particles";
 import { Farm } from "./farm";
@@ -29,8 +30,7 @@ async function main() {
   if (gl && "drawingBufferColorSpace" in gl) gl.drawingBufferColorSpace = "display-p3";
   document.getElementById("game")!.appendChild(app.canvas);
 
-  // профиль лежит в localStorage: просим браузер не вычищать его при нехватке места
-  void navigator.storage?.persist?.().catch(() => undefined);
+  requestPersistence();
   installCursors(app, audio.options.cursors);
   const rules = await loadRules();
   // экран загрузки из index.html: картинки — основная часть (≈ 70 %), звуки ≈ 20 %, шрифты и частицы — остаток
@@ -66,20 +66,11 @@ async function main() {
   // в портретной ориентации экран 4:3 вписывается по ширине и всё мелко — просим повернуть телефон (можно закрыть)
   const rotate = document.getElementById("rotate");
   const checkRotate = () => {
-    let closed = false;
-    try {
-      closed = sessionStorage.getItem("rotate-closed") === "1";
-    } catch {
-      // без хранилища подсказка просто покажется снова
-    }
+    const closed = sessionFlag.get("rotate-closed");
     if (rotate) rotate.style.display = !closed && innerWidth < innerHeight * 0.8 && innerWidth < 700 ? "block" : "none";
   };
   document.getElementById("rotate-close")?.addEventListener("click", () => {
-    try {
-      sessionStorage.setItem("rotate-closed", "1");
-    } catch {
-      // нечего запоминать
-    }
+    sessionFlag.set("rotate-closed");
     checkRotate();
   });
   window.addEventListener("resize", checkRotate);
@@ -87,21 +78,12 @@ async function main() {
   // на компьютере напоминаем про клавишу F (весь экран) — как на телефоне про поворот; пропадает после входа в полноэкранный режим или по крестику
   const fshint = document.getElementById("fshint");
   const checkFs = () => {
-    let closed = false;
-    try {
-      closed = sessionStorage.getItem("fshint-closed") === "1";
-    } catch {
-      // без хранилища подсказка просто покажется снова
-    }
+    const closed = sessionFlag.get("fshint-closed");
     const desktop = innerWidth >= 700 && matchMedia("(pointer: fine)").matches && !matchMedia("(display-mode: fullscreen)").matches;
     if (fshint) fshint.style.display = !closed && desktop && !document.fullscreenElement ? "block" : "none";
   };
   document.getElementById("fshint-close")?.addEventListener("click", () => {
-    try {
-      sessionStorage.setItem("fshint-closed", "1");
-    } catch {
-      // нечего запоминать
-    }
+    sessionFlag.set("fshint-closed");
     checkFs();
   });
   document.addEventListener("fullscreenchange", checkFs);
