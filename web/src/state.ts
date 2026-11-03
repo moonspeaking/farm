@@ -351,6 +351,13 @@ export class Game {
     store.setJson(saveKey(KEYS.saveV3, this.profile), data);
   }
 
+  /** Локация, где остановился текущий игрок (по ней в меню догружаются картинки); без сохранения — первая. */
+  static savedLocation(): number {
+    const id = currentProfile()?.id;
+    const loc = id ? store.getJson<{ loc?: number }>(saveKey(KEYS.saveV3, id))?.loc : undefined;
+    return typeof loc === "number" ? loc : 1;
+  }
+
   /** Есть ли сохранение у текущего игрока. */
   static hasSave() {
     const id = currentProfile()?.id;

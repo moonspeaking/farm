@@ -111,16 +111,41 @@ async function main() {
   };
 
   /** Картинки локации n (вредители, фоны, портреты) грузятся при первом заходе — так в памяти нет неиспользуемых локаций; на это время виден экран загрузки. */
+  const loading = new Map<number, { promise: Promise<void>; last: number; listeners: ((f: number) => void)[] }>();
+  /** Одна загрузка на локацию: фоновая догрузка в меню и вход в игру делят её, а экран загрузки показывает общий прогресс. */
+  const loadLocation = (n: number, onProgress?: (f: number) => void) => {
+    let l = loading.get(n);
+    if (!l) {
+      const entry = { promise: Promise.resolve(), last: 0, listeners: [] as ((f: number) => void)[] };
+      entry.promise = loadImages(rules.location_images[String(n)] ?? [], (f) => {
+        entry.last = f;
+        for (const cb of entry.listeners) cb(f);
+      }).finally(() => loading.delete(n));
+      loading.set(n, entry);
+      l = entry;
+    }
+    if (onProgress) {
+      onProgress(l.last);
+      l.listeners.push(onProgress);
+    }
+    return l.promise;
+  };
+
   const ensureLocation = async (n: number) => {
-    const names = rules.location_images[String(n)] ?? [];
-    if (hasImages(names)) return;
+    if (hasImages(rules.location_images[String(n)] ?? [])) return;
     const screen = (window as unknown as { __loader?: { show(): void; set(p: number): void; done(): void } }).__loader;
     screen?.show();
     try {
-      await loadImages(names, (f) => screen?.set(f));
+      await loadLocation(n, (f) => screen?.set(f));
     } finally {
       screen?.done();
     }
+  };
+
+  /** В меню тихо догружаем картинки локации, где остановился игрок: «Кампания» откроет игру без экрана загрузки. */
+  const preloadLocation = () => {
+    const n = Game.savedLocation();
+    void loadLocation(rules.location_images[String(n)] ? n : 1).catch(() => undefined);
   };
 
   // есть ли у города выгруженной локации ещё квесты (карта показывает значок только у городов с квестами)
@@ -203,6 +228,10 @@ async function main() {
     if (scene === "town") towns[n].entered();
   };
 
+  const userChanged = () => {
+    menu.refreshUser();
+    preloadLocation();
+  };
   const menu = new Menu(rules, {
     hasSave: () => Game.hasSave(),
     options: () => optionsScreen(world, rules, () => undefined),
@@ -210,7 +239,7 @@ async function main() {
     about: () => void aboutScreen(world, rules),
     play: (fresh) => void start(fresh),
     userName: () => currentProfile()?.name ?? null,
-    changeUser: () => selectUserScreen(world, rules, () => menu.refreshUser()),
+    changeUser: () => selectUserScreen(world, rules, userChanged),
   });
   const start = async (fresh: boolean) => {
     if (fresh) Game.clearSave();
@@ -244,9 +273,9 @@ async function main() {
   show(menu);
   // как в оригинале: без игрока сначала спрашиваем имя (старое сохранение достанется этому игроку)
   if (!currentProfile()) {
-    if (profiles().length) selectUserScreen(world, rules, () => menu.refreshUser());
-    else void newUserDialog(world, rules, false).then(() => menu.refreshUser());
-  }
+    if (profiles().length) selectUserScreen(world, rules, userChanged);
+    else void newUserDialog(world, rules, false).then(userChanged);
+  } else preloadLocation();
   if (import.meta.env.DEV) Object.assign(window, { __game: { app, get farm() { return curFarm(); }, get town() { return curTown(); }, get game() { return game; }, get map() { return worldMap; }, enter: (n: number, scene: "farm" | "town") => game && enter(game, n, scene), menu, has: (names: string[]) => hasImages(names) } });
 
   // пауза: пробел — «Пауза», Esc и кнопка «Меню» — меню игры; пока висит любое из них, игровые таймеры (и Робин) стоят
