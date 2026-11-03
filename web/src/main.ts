@@ -308,6 +308,12 @@ async function main() {
       return;
     }
     if (e.code !== "Space" && e.code !== "Escape") return;
+    // Esc на карте мира возвращает в город (кнопки «назад» на ней нет)
+    if (e.code === "Escape" && worldMap?.visible && game) {
+      e.preventDefault();
+      show(towns[game.loc]);
+      return;
+    }
     const farm = curFarm();
     if (!farm || !(farm.visible || curTown()?.visible)) return;
     e.preventDefault();

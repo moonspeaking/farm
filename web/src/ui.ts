@@ -192,6 +192,8 @@ export function dialog(
     offsetX?: number;
     /** Текст по левому краю (длинный текст без «висящих» слов в центрированных строках); по умолчанию по центру. */
     bodyAlign?: "left" | "center";
+    /** Значение, с которым окно закрывается щелчком мимо него (без этого поля мимо не закрывается — нужен выбор кнопкой). */
+    dismiss?: string;
     /** Получает функцию закрытия окна — для кнопок внутри content. */
     bind?: (close: (value: string) => void) => void;
   },
@@ -237,6 +239,10 @@ export function dialog(
       resolve(v);
     };
     opts.bind?.(finish);
+    if (opts.dismiss !== undefined) {
+      shade.on("pointertap", () => finish(opts.dismiss!));
+      box.eventMode = "static"; // нажатия по самому окну не закрывают его
+    }
     const step = Math.min(180, (width - 80) / opts.buttons.length);
     opts.buttons.forEach((b, i) => {
       const btn = textButton(b.text, () => finish(b.value));

@@ -3,7 +3,7 @@ import { Container, Graphics } from "pixi.js";
 import { Hud } from "./hud";
 import type { QuestEngine } from "./quests";
 import type { Rules } from "./rules";
-import type { Game } from "./state";
+import { REPEAT_HINTS_UNTIL_DAY, type Game } from "./state";
 import { Talk } from "./talk";
 import { Reminder, type Tutorial } from "./tutorial";
 import { COLOR, image, pop, roundButton, toast } from "./ui";
@@ -34,7 +34,7 @@ export class Town extends Container {
 
   constructor(
     private readonly rules: Rules,
-    game: Game,
+    private readonly game: Game,
     private readonly quests: QuestEngine,
     private readonly events: TownEvents,
     private readonly tut: Tutorial,
@@ -64,7 +64,10 @@ export class Town extends Container {
     // круглые кнопки town_screen, как на ферме: to_global_map (193; -110) и shop_screen_farm (527; -110)
     const map = roundButton(t.buttons.town_to_global_map ?? "На Карту", () => this.events.toMap());
     map.position.set(193 + 103, -110 + 99);
-    const farm = roundButton(t.buttons.shop_screen_farm ?? "На Ферму", () => this.events.toFarm());
+    const farm = roundButton(t.buttons.shop_screen_farm ?? "На Ферму", () => {
+      if (!game.tutorial.includes("@town_to_farm")) game.tutorial.push("@town_to_farm"); // напоминание «на ферму» больше не нужно
+      this.events.toFarm();
+    });
     farm.position.set(527 + 103, -110 + 99);
     this.addChild(map, farm);
     // левая панель Айрис — та же, что на ферме
@@ -81,7 +84,7 @@ export class Town extends Container {
   update(dt: number) {
     this.hud.tick(dt);
     // «Нажмите сюда для перехода на ферму» каждые 10 с, пока в городе нечем заняться (exe 0x492b40)
-    this.reminder.tick(dt, this.tut, !this.busy, () => this.tut.show("town_show_farm_baloon", 630, 60, true));
+    this.reminder.tick(dt, this.tut, !this.busy && !this.game.tutorial.includes("@town_to_farm") && this.game.day <= REPEAT_HINTS_UNTIL_DAY, () => this.tut.show("town_show_farm_baloon", 630, 60, true));
   }
 
   /** Плашка с именем у курсора: тёмно-зелёная, белый жирный текст (на скриншоте оригинала). */

@@ -62,8 +62,9 @@ export function optionsScreen(parent: Container, rules: Rules, onClose: () => vo
     layer.destroy({ children: true });
     onClose();
   };
-  layer.addChild(shade());
+  layer.addChild(shade(done)); // щелчок мимо окна закрывает его, как «OK»
   const box = new Container();
+  box.eventMode = "static"; // нажатия по самому окну не доходят до затемнения
   box.position.set((W - 346) / 2, (H - 450) / 2);
   box.addChild(image("options_bg"));
   const title = pop(t.title ?? "Опции", "TC4_16_en", COLOR.white, { align: "center", scale: 1.15 });
@@ -191,7 +192,22 @@ export function recordScore(rules: Rules, name: string, days: number, money: num
 export function highscoresScreen(parent: Container, rules: Rules, onClose: () => void) {
   const layer = new Container();
   const t = rules.texts.headers;
-  layer.addChild(image("highscores_bg"));
+  const close = () => {
+    layer.destroy({ children: true });
+    onClose();
+  };
+  // невидимый слой на весь экран: щелчок мимо свитка закрывает окно; сам свиток нажатия поглощает
+  const outside = new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.001 });
+  outside.eventMode = "static";
+  outside.on("pointertap", close);
+  const back = image("highscores_bg");
+  back.eventMode = "static";
+  // картинка может быть больше самого свитка (прозрачные поля) — мимо свитка считаем по его границам
+  back.on("pointertap", (e) => {
+    const p = layer.toLocal(e.global);
+    if (p.x < 180 || p.x > 625 || p.y < 135 || p.y > 490) close();
+  });
+  layer.addChild(outside, back);
   const caption = pop(t.highscore_header ?? "Рекорды", "TC4_16_en", COLOR.white, { align: "center", scale: 1.1 });
   caption.position.set(406, 154); // по центру рамки (свиток 200…613)
   layer.addChild(caption);
@@ -222,10 +238,7 @@ export function highscoresScreen(parent: Container, rules: Rules, onClose: () =>
       layer.addChild(m);
     }
   });
-  const ok = textButton(rules.texts.buttons.ok ?? "OK", () => {
-    layer.destroy({ children: true });
-    onClose();
-  });
+  const ok = textButton(rules.texts.buttons.ok ?? "OK", close);
   ok.position.set(388 + 18, 435 + 17);
   layer.addChild(ok);
   parent.addChild(layer);
@@ -303,7 +316,7 @@ export async function aboutScreen(parent: Container, rules: Rules) {
       ...(page > 0 ? [{ text: rules.texts.buttons.back ?? "Назад", value: "prev" }] : []),
       { text: last ? (rules.texts.buttons.tutorial_baloon_close ?? "Закрыть") : "Далее", value: last ? "cancel" : "next" },
     ];
-    const r = await dialog(parent, { title: `${ABOUT_PAGES[page].title} (${page + 1}/${ABOUT_PAGES.length})`, body: ABOUT_PAGES[page].body, bodyAlign: "left", buttons, width: 660 }); // 550 px под текст: «…борьба с вредителями.» (535 px) влезает в строку
+    const r = await dialog(parent, { title: `${ABOUT_PAGES[page].title} (${page + 1}/${ABOUT_PAGES.length})`, body: ABOUT_PAGES[page].body, bodyAlign: "left", buttons, width: 660, dismiss: "cancel" }); // 550 px под текст: «…борьба с вредителями.» (535 px) влезает в строку
     if (r === "next") page += 1;
     else if (r === "prev") page -= 1;
     else return;

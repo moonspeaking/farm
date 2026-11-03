@@ -79,6 +79,11 @@ export class Tutorial extends Container {
     return true;
   }
 
+  /** Подсказка стоит в очереди и ещё не показана. В оригинале флаг ставится при показе, а не при постановке в очередь (0x4409c0). */
+  queued(id: string) {
+    return this.queue.some((q) => q.id === id);
+  }
+
   private display(id: string, x: number, y: number, after?: () => void) {
     const text = this.rules.texts.tutorial[id];
     this.current = id;

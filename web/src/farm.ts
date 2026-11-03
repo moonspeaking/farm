@@ -12,7 +12,7 @@ import { skillNotice, splash, WeatherFx } from "./notices";
 import { rgb } from "./popfont";
 import { family, RidgeView } from "./ridge";
 import { fmt, Place, Rules, StorageLevel } from "./rules";
-import type { Game, PlantSave, Weather } from "./state";
+import { REPEAT_HINTS_UNTIL_DAY, type Game, type PlantSave, type Weather } from "./state";
 import { Reminder, Tutorial } from "./tutorial";
 import { COLOR, dialog, floatPoints, H, image, pop, roundButton, shopButton, type ShopButton, tex, textButton, toast, W } from "./ui";
 
@@ -259,9 +259,12 @@ export class Farm extends Container {
     // пузыри магазина из exe (ShopScreenFarm 0x4acf50, 0x4ad4d0, 0x4adbb0): висят, пока игрок не сделал действие —
     // флаг «сделано» ставит само действие, а не показ (поэтому force: подсказка повторяется при каждом входе в магазин)
     const free = this.ridges.find((x) => !x.plant);
-    if (free && !g.tutorial.includes("@first_vegetation")) tut.show("first_vegetation", free.x + free.anchorPoint[0], free.y + 10, true);
-    if (g.storageCount() > 0 && !g.tutorial.includes("@sell_prod")) tut.show("sell_prod", this.rules.shop_positions.sell_prod[0] + 50, this.rules.shop_positions.sell_prod[1], true);
-    if (g.tutorial.includes("@can_buy_water") && !g.tutorial.includes("@buy_water")) tut.show("buy_water", 0, 0, true);
+    // подсказки «купите» не показываем, когда денег всё равно не хватает: действие сделать нельзя
+    const repeat = g.day <= REPEAT_HINTS_UNTIL_DAY; // дальше пузыри «купите» и «продайте» не повторяются
+    const cheapest = Math.min(...this.shopSeeds().map((s) => g.buyPrice(this.rules.vegetations[s].price_buy)));
+    if (repeat && free && !g.tutorial.includes("@first_vegetation") && g.gold >= cheapest) tut.show("first_vegetation", free.x + free.anchorPoint[0], free.y + 10, true);
+    if (repeat && g.storageCount() > 0 && !g.tutorial.includes("@sell_prod")) tut.show("sell_prod", this.rules.shop_positions.sell_prod[0] + 50, this.rules.shop_positions.sell_prod[1], true);
+    if (repeat && g.tutorial.includes("@can_buy_water") && !g.tutorial.includes("@buy_water") && g.gold >= g.buyPrice(this.rules.prices.water)) tut.show("buy_water", 0, 0, true);
     if (g.hasMark("shop_barrel") && this.rules.water_storage[g.barrels]) {
       const nb = this.rules.water_storage[g.barrels];
       // подсказка подсвечивает кнопку «Купить» — показываем её именно у этого объекта
@@ -298,6 +301,7 @@ export class Farm extends Container {
       if (r !== "ok") return;
     }
     this.tutorial.hide();
+    this.markTutorial("@start_day"); // напоминание «Начать День» больше не нужно
     this.mode = "day";
     this.dayLeft = this.rules.day_time;
     this.harvestedToday = 0;
@@ -408,7 +412,6 @@ export class Farm extends Container {
   }
 
   update(dt: number) {
-    this.hud.blinkOn = this.mode !== "day"; // умения улучшаются только между днями — днём рамка не мигает
     this.hud.tick(dt);
     // днём окно подсказки с затемнением ставит игру на паузу до «Закрыть» (exe 0x476cd0); простой пузырь — нет, он гаснет через 10 с
     const waiting = this.mode === "day" && this.tutorial.blocking;
@@ -416,7 +419,7 @@ export class Farm extends Container {
     this.bouquets?.update(dt);
     if (this.paused || waiting) return;
     if (this.mode !== "day" && !this.bouquets && this.startBtn.visible) {
-      this.startReminder.tick(dt, this.tutorial, this.game.tutorial.includes("@first_vegetation"), () => this.tutorial.show("start_day_baloon", 630, 70, true));
+      this.startReminder.tick(dt, this.tutorial, this.game.tutorial.includes("@first_vegetation") && !this.game.tutorial.includes("@start_day") && this.game.day <= REPEAT_HINTS_UNTIL_DAY, () => this.tutorial.show("start_day_baloon", 630, 70, true));
     }
     this.weatherFx.update(dt);
     // Робин работает только в течение дня, между днями его на ферме нет
@@ -520,7 +523,8 @@ export class Farm extends Container {
         const p = ridge.plant;
         if (!p) return false;
         const view = p.view;
-        return this.tutorial.show("first_vegetation_dead", ridge.x + view.x + view.width / 2, ridge.y + view.y + view.height / 2);
+        // пока подсказка ждёт очереди, исключение действует для всех растений: в оригинале флаг ставится при показе, не при очереди
+        return this.tutorial.queued("first_vegetation_dead") || this.tutorial.show("first_vegetation_dead", ridge.x + view.x + view.width / 2, ridge.y + view.y + view.height / 2);
       },
       died: (ridge, reason) => {
         audio.play("vegetation_die");
@@ -927,6 +931,12 @@ export class Farm extends Container {
     toast(this.ui, this.rules.texts.desc.not_enough_money ?? "Недостаточно денег");
   }
 
+  /** Растения, которые сейчас можно купить. */
+  private shopSeeds() {
+    const g = this.game;
+    return g.hasMark("shop_vegetation") ? g.seeds : g.seeds.filter((s) => this.rules.start.vegetations.includes(s));
+  }
+
   /** Выбор растения для пустой грядки: набор buy_vegetation_set локации (остальные — с 7-го дня, метка shop_vegetation). */
   private async chooseSeed(r: RidgeView) {
     const t = this.rules.texts;
@@ -934,7 +944,7 @@ export class Farm extends Container {
     const content = new Container();
     const step = 150;
     let close: (v: string) => void = () => {};
-    const seeds = g.hasMark("shop_vegetation") ? g.seeds : g.seeds.filter((s) => this.rules.start.vegetations.includes(s));
+    const seeds = this.shopSeeds();
     seeds.forEach((seed, i) => {
       const def = this.rules.vegetations[seed];
       const card = new Container();
@@ -1132,8 +1142,8 @@ export class Farm extends Container {
   }
 
   openLevelUp() {
-    if (this.paused || this.mode === "day") return toast(this.ui, "Умения можно улучшать между днями");
-    this.paused = true;
+    if (this.paused) return;
+    this.paused = true; // пока открыто окно умений, игра днём стоит
     const screen = new LevelUp(this.rules, this.game, !!this.game.quests.helper, () => {
       this.paused = false;
       this.persist();

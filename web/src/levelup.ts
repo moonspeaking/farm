@@ -50,6 +50,7 @@ export class LevelUp extends Container {
     super();
     const shade = new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.45 });
     shade.eventMode = "static";
+    this.box.eventMode = "static"; // нажатия по самому окну не закрывают его (закрывает щелчок мимо)
     this.addChild(shade, this.box);
     this.box.position.set((W - 349) / 2 + 40, (H - 446) / 2);
     this.box.addChild(image("lu_back"));

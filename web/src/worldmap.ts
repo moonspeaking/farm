@@ -1,7 +1,7 @@
 // Карта мира (global_map): города и фермы четырёх локаций; открытые квестами светятся при наведении.
 import { Container, Graphics, Rectangle } from "pixi.js";
 import type { Rules } from "./rules";
-import type { Game } from "./state";
+import { REPEAT_HINTS_UNTIL_DAY, type Game } from "./state";
 import { Reminder, type Tutorial } from "./tutorial";
 import { type Emitter, ParticleLayer } from "./particles";
 import { COLOR, image, pop, W } from "./ui";
@@ -48,7 +48,10 @@ export class WorldMap extends Container {
       });
       spot.on("pointertap", () => {
         if (!this.open(key)) return;
-        if (kind === "town") this.events.openTown(n);
+        if (kind === "town") {
+          if (!this.game.tutorial.includes("@map_to_town")) this.game.tutorial.push("@map_to_town"); // напоминание «в город» больше не нужно
+          this.events.openTown(n);
+        }
         else this.events.openFarm(n);
       });
       this.places.push({ key, spot, hover });
@@ -97,7 +100,7 @@ export class WorldMap extends Container {
   update(dt: number) {
     this.fx.update(dt);
     // «Нажмите сюда для перехода в город» каждые 10 с (exe 0x479170): у города локации, где сейчас игра
-    this.reminder.tick(dt, this.tut, true, () => {
+    this.reminder.tick(dt, this.tut, !this.game.tutorial.includes("@map_to_town") && this.game.day <= REPEAT_HINTS_UNTIL_DAY, () => {
       const town = this.rules.global_map[`town_${this.game.loc}`] ?? this.rules.global_map.town_1;
       this.tut.show("global_map_show_town_baloon", town.position[0] + town.dimensions[0] / 2 - 8, town.position[1] + town.dimensions[1] / 2 - 4, true);
     });

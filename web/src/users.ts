@@ -6,9 +6,10 @@ import type { Rules } from "./rules";
 import { fmt } from "./rules";
 import { COLOR, dialog, H, image, pop, textButton, W } from "./ui";
 
-function shade() {
+function shade(onTap?: () => void) {
   const s = new Graphics().rect(0, 0, W, H).fill({ color: 0x000000, alpha: 0.45 });
   s.eventMode = "static";
+  if (onTap) s.on("pointertap", onTap);
   return s;
 }
 
@@ -19,8 +20,9 @@ function shade() {
 export function newUserDialog(parent: Container, rules: Rules, cancelable = true): Promise<boolean> {
   return new Promise((resolve) => {
     const layer = new Container();
-    layer.addChild(shade());
+    layer.addChild(shade(cancelable ? () => finish(false) : undefined));
     const box = new Container();
+    box.eventMode = "static";
     box.position.set((W - 444) / 2, (H - 143) / 2);
     box.addChild(image("new_user_bg"));
     const header = pop(rules.texts.headers.enter_new_user_name ?? "Введите ваше имя.", "TC4_16_en", COLOR.white, { align: "center" });
@@ -88,8 +90,9 @@ export function newUserDialog(parent: Container, rules: Rules, cancelable = true
 /** Список игроков на свитке: выбор, «Создать», «Удалить», OK. onClose вызывается, когда выбран текущий игрок. */
 export function selectUserScreen(parent: Container, rules: Rules, onClose: () => void) {
   const layer = new Container();
-  layer.addChild(shade());
+  layer.addChild(shade(() => selected && ok())); // щелчок мимо списка — как «OK» с выбранным игроком
   const box = new Container();
+  box.eventMode = "static";
   box.position.set((W - 349) / 2, (H - 450) / 2);
   box.addChild(image("select_user_bg"));
   const header = pop(rules.texts.headers.select_user ?? "Выберите игрока", "TC4_16_en", COLOR.white, { align: "center" });

@@ -101,6 +101,12 @@ interface Save {
 }
 
 
+/** Флаги «действие сделано» для пузырей и напоминаний обучения (в exe — метки и флаги GameHolder). Кто играет не первый день, тот их прошёл. */
+const PASSED_FLAGS = ["@first_vegetation", "@sell_prod", "@can_buy_water", "@buy_water", "@start_day", "@town_to_farm", "@map_to_town"];
+
+/** Повторяющиеся подсказки (напоминания экранов и пузыри «купите») показываются только до этого дня включительно. */
+export const REPEAT_HINTS_UNTIL_DAY = 15;
+
 type Listener = () => void;
 
 export interface Options {
@@ -377,6 +383,8 @@ export class Game {
           questStates: s.questStates, world: s.world, farms: s.farms, loc: s.loc, marks: s.marks ?? [], items: s.items ?? {}, bugItems: s.bugItems ?? {},
         });
         this.mergeOldMarks();
+        // сохранения до пузырей магазина не знают флагов «действие сделано»: кто уже играл не первый день, их прошёл
+        if (this.day > 1) for (const f of PASSED_FLAGS) if (!this.tutorial.includes(f)) this.tutorial.push(f);
         this.restore(s.farms[s.loc]);
         this.fillOrders();
         return true;
