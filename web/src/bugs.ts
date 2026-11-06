@@ -132,14 +132,15 @@ export class Bug extends Actor {
   }
 
   /** Удар: игрок (оружие simple_sword и умения) или Робин. */
-  hit(n: number, byHelper = false) {
+  hit(n: number, byHelper = false, hold = 0) {
     if (this.dead || this.reincornTo) return;
     this.life -= n;
     this.hearts.set(this.life > 0 ? (this.life / this.maxLife) * this.hearts.max : 0);
     this.events.hurt(this);
     if (this.life > 0) {
       this.play("hit", 0, 0, true);
-      this.busy = this.def.anims.hit?.time ?? 0.3;
+      // hold — сколько ещё держать вредителя на месте (Робин бьёт реже, чем длится анимация удара, и между ударами вредитель убегал)
+      this.busy = Math.max(this.def.anims.hit?.time ?? 0.3, hold);
       return;
     }
     if (this.def.reincorn) {
@@ -346,7 +347,7 @@ export class Helper extends Actor {
         this.play("stand", bug.x - this.x, 0);
         if (this.cooldown <= 0) {
           // exe 0x456820: урон = attack · значение(helper_attack), таймер удара каждый раз заново = attack_period (умение его не ускоряет)
-          bug.hit(h.attack * (1 + this.game.bonus("helper_attack", "helper_attack")), true);
+          bug.hit(h.attack * (1 + this.game.bonus("helper_attack", "helper_attack")), true, h.attack_period + 0.1);
           this.cooldown = h.attack_period;
         }
         return;
