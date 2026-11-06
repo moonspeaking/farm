@@ -13,8 +13,11 @@ const BLOCK: [number, number] = [121, 66];
 
 /** Центры бумажных конусов заказов на фоне bouquets_back (слева и справа по два). */
 const CONES: [number, number][] = [[203, 288], [199, 428], [709, 288], [710, 428]];
-/** Места трёх цветов в конусе относительно его центра. */
-const FLOWER_SPOTS: [number, number][] = [[-24, -16], [0, -30], [24, -16]];
+/** Точки букетов bp1…bp4 и места цветов трёхцветного букета c3/p1…p3 (skin_ru.xml → bouquets_screen/bouquet_points): центр цветка = точка + смещение. */
+const BOUQUET_POINTS: [number, number][] = [[159, 235], [158, 379], [668, 235], [668, 377]];
+const C3: [number, number][] = [[17, 38], [68, 30], [44, 58]];
+/** Места цветов в конусе относительно его центра (по оригиналу: два сверху, один спереди внизу). */
+const FLOWER_SPOTS = (oi: number): [number, number][] => C3.map(([x, y]) => [BOUQUET_POINTS[oi][0] + x - CONES[oi][0], BOUQUET_POINTS[oi][1] + y - CONES[oi][1]]);
 /** Корзина: внутренняя область, где лежат цветы. */
 const BASKET = new Rectangle(352, 308, 216, 160);
 /** Куда можно опустить цветок, чтобы он лёг в корзину (чуть шире самой корзины). */
@@ -111,14 +114,18 @@ export class BouquetScreen extends Container {
       pic.anchor.set(0.5);
       pic.scale.set(Math.min(1, 60 / pic.texture.width, 50 / pic.texture.height));
       pic.position.set(30, 46);
-      const count = pop(String(n), "BritannicBold14", COLOR.black, { align: "center" });
-      count.position.set(34, 74);
+      // количество — справа от коробочки, нарисованной в фоне (по центру оно налезало на неё)
+      const count = pop(String(n), "BritannicBold14", COLOR.black);
+      count.anchor.set(0, 0.5);
+      count.position.set(41, 84);
       slot.addChild(priceText, pic, count);
       // sell (10; 102) 40×19, sell_all (17; 125) 23×19 — текстовые кнопки стиля shop
       const one = textButton(t.shop_buttons.sell ?? "Один", () => this.sell(product, 1), "shop");
       one.position.set(30, 112);
       const all = textButton(t.shop_buttons.sell_all ?? "Все", () => this.sell(product, n), "shop");
       all.position.set(29, 135);
+      // область нажатия — вся нарисованная в фоне плашка (около 66 × 24), а не только буквы: на телефоне и планшете в них не попасть
+      for (const b of [one, all]) b.hitArea = new Rectangle(b.textWidth / 2 - 33, b.textHeight / 2 - 12, 66, 24);
       slot.addChild(one, all);
       this.slots.addChild(slot);
     });
@@ -249,7 +256,8 @@ export class BouquetScreen extends Container {
       o.items.forEach((product, si) => {
         const s = image(o.placed[si] ?? product);
         s.anchor.set(0.5);
-        s.position.set(cx + FLOWER_SPOTS[si][0], cy + FLOWER_SPOTS[si][1]);
+        const spot = FLOWER_SPOTS(oi)[si];
+        s.position.set(cx + spot[0], cy + spot[1]);
         if (o.placed[si]) {
           // уже стоящий цветок можно снять и переложить: пока букет не собран, он остаётся в заказе
           s.eventMode = "static";
