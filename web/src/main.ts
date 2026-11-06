@@ -253,6 +253,8 @@ async function main() {
     for (const k of Object.keys(towns)) delete towns[Number(k)];
     for (const k of Object.keys(questsLeft)) delete questsLeft[Number(k)];
     game = g;
+    // только в dev-сборке (npm run dev): в консоли cheat() даёт +50000 монет и 30 уровень
+    if (import.meta.env.DEV) (window as unknown as { cheat: () => void }).cheat = () => { g.gold += 50000; g.exp = Math.max(g.exp, rules.exp_levels[28]); g.changed(); };
     worldTut?.destroy({ children: true });
     worldTut = new Tutorial(rules, g, () => audio.options.warnings);
     build(g, g.loc);

@@ -37,7 +37,7 @@ export class LevelUp extends Container {
   private selected: SkillName | null = null;
   private hover: SkillName | null = null;
   private readonly box = new Container();
-  private readonly desc: PopLabel;
+  private desc!: PopLabel;
   private readonly marks = new Container();
   private readonly buttonHolder = new Container();
 
@@ -95,9 +95,7 @@ export class LevelUp extends Container {
     }
 
     // описание на бумажном свитке: description (44; 237) 255×85
-    this.desc = pop("", "Verdana14", COLOR.black, { wrap: 250, lineOffset: -3 });
-    this.desc.position.set(44, 240);
-    this.box.addChild(this.desc, this.buttonHolder);
+    this.box.addChild(this.buttonHolder);
     shade.on("pointertap", () => this.close());
     this.render();
   }
@@ -129,19 +127,30 @@ export class LevelUp extends Container {
       if (showNext) capsule((level + 1) / MAX_LEVEL, NEXT_COLOR);
       if (level > 0) capsule(level / MAX_LEVEL, prog.color);
       // рамка 120×24: выбранное умение — selected_color (красная), под курсором — overed_color (зелёная)
-      if (skill === this.selected) this.marks.addChild(new Graphics().rect(slot.bar[0], slot.bar[1], 120, 24).stroke({ color: 0xff0000, width: 1 }));
-      else if (skill === this.hover) this.marks.addChild(new Graphics().rect(slot.bar[0], slot.bar[1], 120, 24).stroke({ color: 0x00ff00, width: 1 }));
+      // выбранное умение — золотая скруглённая рамка с мягким свечением, под курсором — тонкая светлая
+      const [bx, by] = slot.bar;
+      if (skill === this.selected) {
+        this.marks.addChild(
+          new Graphics().roundRect(bx - 2, by - 2, 124, 28, 14).stroke({ color: 0xffd25a, width: 4, alpha: 0.25 }),
+          new Graphics().roundRect(bx - 1, by - 1, 122, 26, 13).stroke({ color: 0xffd25a, width: 2 }),
+        );
+      } else if (skill === this.hover) {
+        this.marks.addChild(new Graphics().roundRect(bx - 1, by - 1, 122, 26, 13).stroke({ color: 0xfff1c2, width: 1.5, alpha: 0.8 }));
+      }
     }
 
     const t = this.rules.texts;
     const points = g.skillPoints;
+    let text: string;
     if (this.selected) {
       const s = this.selected;
       // в оригинале на свитке только описание умения (description 255 × 85)
-      this.desc.text = fmt(t.skill_desc[s]);
+      text = fmt(t.skill_desc[s]);
     } else {
-      this.desc.text = points > 0 ? fmt(t.tutorial.level_up) : `${t.stats.hero_title}: ${g.exp}`;
+      text = points > 0 ? fmt(t.tutorial.level_up) : `${t.stats.hero_title}: ${g.exp}`;
     }
+
+    this.setDesc(text);
 
     this.buttonHolder.removeChildren().forEach((c) => c.destroy({ children: true }));
     const can = !!this.selected && points > 0 && g.skills[this.selected] < 5;
@@ -154,6 +163,20 @@ export class LevelUp extends Container {
       ok.position.set(157 + 16, 372 + 16);
       this.buttonHolder.addChild(ok);
     }
+  }
+
+  /** Описание на свитке (область 255 × 80): если не помещается, шрифт уменьшается, пока текст не влезет. */
+  private setDesc(text: string) {
+    this.desc?.destroy();
+    let k = 1;
+    for (;;) {
+      this.desc = pop(text, "Verdana14", COLOR.black, { wrap: 236 / k, lineOffset: -3, scale: k });
+      if (this.desc.textHeight <= 80 || k <= 0.55) break;
+      this.desc.destroy();
+      k -= 0.05;
+    }
+    this.desc.position.set(50, 240);
+    this.box.addChildAt(this.desc, this.box.getChildIndex(this.buttonHolder));
   }
 
   private raise() {

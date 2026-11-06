@@ -373,10 +373,10 @@ export class Helper extends Actor {
     this.showIcon(task.kind);
     this.follow(dt, grid);
     if (this.path.length) return;
-    // пришёл (путь пройден) — действие при пустом списке путевых точек (0x45a2d0, 0x4570a0): полив только этого растения;
-    // сбор — всех спелых плодов на этом растении, пока в ящиках есть место (шанса «полить / собрать всё» в exe нет)
-    if (task.kind === "pour") onWater(r);
-    else while (r.readyProduct() >= 0 && this.game.storageCount() < this.game.storageMax) r.collect(r.readyProduct(), false);
+    // пришёл (путь пройден): по логике оригинала на растении делаются оба дела сразу — сбор всех спелых плодов (пока в ящиках есть место)
+    // и полив, если растение хочет пить, независимо от того, за чем Робин прилетел
+    while (r.readyProduct() >= 0 && this.game.storageCount() < this.game.storageMax) r.collect(r.readyProduct(), false);
+    if (r.thirsty) onWater(r);
     this.task = null;
   }
 

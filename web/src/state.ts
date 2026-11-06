@@ -194,6 +194,15 @@ export class Game {
     this.questStates[this.loc] = v;
   }
 
+  /** Робин (enable_helper / disable_helper) живёт на всех фермах: флаг хранится в квестах первой локации, чтобы не пропадать на других. */
+  get helper(): boolean {
+    return !!this.questStates[1]?.helper;
+  }
+
+  set helper(v: boolean) {
+    (this.questStates[1] ??= newQuestState(this.base.quests)).helper = v;
+  }
+
   private snapshot(plants = this.savedPlants): FarmState {
     return {
       water: this.water, barrels: this.barrels, boxes: this.boxes, well: this.well, storage: Object.fromEntries(this.storage),
@@ -204,7 +213,7 @@ export class Game {
   private restore(f: FarmState) {
     this.water = f.water;
     this.barrels = f.barrels;
-    this.boxes = f.boxes;
+    this.boxes = Math.max(1, f.boxes); // на каждой ферме первый ящик (как и первая бочка) уже стоит
     this.well = f.well;
     this.storage = new Map(Object.entries(f.storage));
     this.boughtRidges = f.boughtRidges;
@@ -221,7 +230,7 @@ export class Game {
     const rules = this.rules;
     this.restore(
       this.farms[n] ?? {
-        water: this.base.start.water, barrels: ownedLevels(rules.water_storage), boxes: ownedLevels(rules.product_storage), well: false, storage: {}, boughtRidges: [], plants: [],
+        water: this.base.start.water, barrels: ownedLevels(rules.water_storage), boxes: Math.max(1, ownedLevels(rules.product_storage)), well: false, storage: {}, boughtRidges: [], plants: [],
         seeds: [...rules.seeds], bouquets: { next: 0, orders: [], done: 0 },
       },
     );

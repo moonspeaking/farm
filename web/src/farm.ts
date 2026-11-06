@@ -152,6 +152,7 @@ export class Farm extends Container {
   private sellTarget: RidgeView | null = null;
   /** Покупка (грядка, бочка, ящик, колодец), у которой сейчас показана кнопка «Купить». */
   private buyTarget: string | null = null;
+  private skillReminded = false;
 
   private unsubscribe: () => void = () => undefined;
 
@@ -280,6 +281,11 @@ export class Farm extends Container {
       if (free && tut.show("new_ridge", free.position[0] + 24, free.position[1] + 4)) this.setBuyTarget(`ridge:${idx}`);
     }
     if (g.hasMark("shop_well") && !g.well && tut.show("well", 188, 480)) this.setBuyTarget("well");
+    // при открытии фермы напоминаем, что есть неиспользованные очки умений (один раз за открытие, подсказка у числа уровня)
+    if (!this.skillReminded) {
+      this.skillReminded = true;
+      if (g.skillPoints > 0) tut.show("level_up", 52, 140, true);
+    }
   }
 
   private async startDay() {
@@ -630,12 +636,12 @@ export class Farm extends Container {
 
   /** Робин появляется после квеста слуги (enable_helper). */
   private syncHelper() {
-    if (!this.game.quests.helper && this.helper) {
+    if (!this.game.helper && this.helper) {
       // disable_helper: Робин уходит с фермы
       this.helper.destroy({ children: true });
       this.helper = null;
     }
-    if (!this.game.quests.helper || this.helper) return;
+    if (!this.game.helper || this.helper) return;
     this.helper = new Helper(this.rules, this.game, [255, 285]);
     this.helper.visible = this.mode === "day";
     this.objects.addChild(this.helper);
@@ -833,7 +839,8 @@ export class Farm extends Container {
     const buyables: { key: string; button: () => ShopButton; at: [number, number] }[] = [];
     const ghostOf = (key: string, ghost: Sprite) => {
       ghost.eventMode = "static";
-      ghost.on("pointerover", () => this.setBuyTarget(key));
+      // у бочки и ящика кнопки «Купить» видны всегда — наведением они не переключаются
+      if (key !== "barrel" && key !== "box") ghost.on("pointerover", () => this.setBuyTarget(key));
       this.shopLayer.addChild(ghost);
     };
 
@@ -883,7 +890,7 @@ export class Farm extends Container {
     const nextBox = this.rules.product_storage[g.boxes];
     if (nextBox && g.hasMark("shop_box")) {
       const ghost = image(this.rules.box_image);
-      ghost.alpha = 0.4;
+      ghost.alpha = 0.75;
       ghost.position.set(...nextBox.position);
       ghostOf("box", ghost);
       const cost = g.buyPrice(nextBox.price);
@@ -909,7 +916,11 @@ export class Farm extends Container {
         },
       });
     }
-    const active = buyables.find((b) => b.key === this.buyTarget) ?? buyables[0];
+    // кнопки бочки и ящика показаны сразу обе; из остальных покупок (грядки, колодец) — одна, у объекта под курсором
+    const always = buyables.filter((b) => b.key === "barrel" || b.key === "box");
+    const single = buyables.filter((b) => b.key !== "barrel" && b.key !== "box");
+    for (const b of always) add(b.button(), ...b.at);
+    const active = single.find((b) => b.key === this.buyTarget) ?? single[0];
     this.buyTarget = active?.key ?? null;
     if (active) add(active.button(), ...active.at);
 
@@ -1144,7 +1155,7 @@ export class Farm extends Container {
   openLevelUp() {
     if (this.paused) return;
     this.paused = true; // пока открыто окно умений, игра днём стоит
-    const screen = new LevelUp(this.rules, this.game, !!this.game.quests.helper, () => {
+    const screen = new LevelUp(this.rules, this.game, !!this.game.helper, () => {
       this.paused = false;
       this.persist();
     });

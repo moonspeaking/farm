@@ -209,11 +209,11 @@ export class QuestEngine {
           this.hooks.removeAllVegetations();
           break;
         case "enable_helper":
-          st.helper = true;
+          g.helper = true;
           this.hooks.notify("Робин теперь живёт на ферме");
           break;
         case "disable_helper":
-          st.helper = false;
+          g.helper = false;
           break;
         case "clear_bouquets":
           // испытания детектива начинают ферму заново: заказы букетов и собранные цветы пропадают

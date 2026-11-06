@@ -95,7 +95,7 @@ export class Hud extends Container {
     this.values.water.text = `${g.water} / ${g.waterMax}`;
     this.values.money.text = String(g.gold);
     this.values.day.text = String(g.day);
-    this.values.level.text = String(g.level);
+    this.setLevel(String(g.level));
     const [cur, need] = g.levelProgress;
     // дорожка полоски — белая с чёрной рамкой (experience: 32; 123, 61 × 11), поверх неё зелёная заливка
     this.bar.clear().rect(32, 123, 61, 11).fill(0xffffff).stroke({ color: 0x000000, width: 1 });
@@ -104,6 +104,21 @@ export class Hud extends Container {
       this.bar.rect(32, 123, w, 11).fill(0x58c63c);
       this.bar.rect(33, 124, Math.max(0, w - 2), 4).fill({ color: 0xb6f58a, alpha: 0.7 });
     }
+  }
+
+  /** Число уровня: цифры float_points широкие, поэтому двузначное уменьшается, чтобы уместиться слева от полоски опыта (x 9…31). */
+  private setLevel(text: string) {
+    const cur = this.values.level;
+    if (cur.text === text) return;
+    cur.destroy();
+    const probe = pop(text, "float_points", COLOR.white);
+    const k = Math.min(0.85, 21 / Math.max(1, probe.textWidth));
+    probe.destroy();
+    const l = pop(text, "float_points", COLOR.white, { align: "center", scale: k });
+    l.anchor.set(0.5, 0.5);
+    l.position.set(20, 126);
+    this.addChildAt(l, this.getChildIndex(this.glow));
+    this.values.level = l;
   }
 
   /** Мигание рамки, пока есть неиспользованные очки умений. */
