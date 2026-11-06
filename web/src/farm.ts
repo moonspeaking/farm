@@ -106,6 +106,9 @@ export interface FarmEvents {
   dayEnded(): void;
 }
 
+/** Где Робин начинает день на каждой ферме: свободная от препятствий точка (на ферме 1 — исходная (255; 285), на остальных там стоят ящики и бочки). */
+const HELPER_HOME: Record<number, [number, number]> = { 1: [255, 285], 2: [205, 325], 3: [265, 285], 4: [295, 310] };
+
 export class Farm extends Container {
   private mode: Mode = "shop";
   /** Пауза: меню, окна умений и т. п. — таймеры дня стоят. */
@@ -272,18 +275,18 @@ export class Farm extends Container {
     if (g.hasMark("shop_barrel") && this.rules.water_storage[g.barrels]) {
       const nb = this.rules.water_storage[g.barrels];
       // подсказка подсвечивает кнопку «Купить» — показываем её именно у этого объекта
-      if (tut.show("barrel", nb.position[0] + 60, nb.position[1] + 60)) this.setBuyTarget("barrel");
+      if (tut.show("barrel", nb.position[0] + 10 + 50, nb.position[1] + 50 + 30)) this.setBuyTarget("barrel");
     }
     if (g.hasMark("shop_box") && this.rules.product_storage[g.boxes]) {
       const nb = this.rules.product_storage[g.boxes];
-      if (tut.show("box", nb.position[0] + 70, nb.position[1] + 40)) this.setBuyTarget("box");
+      if (tut.show("box", nb.position[0] + 20 + 50, nb.position[1] + 35 + 30)) this.setBuyTarget("box");
     }
     if (g.hasMark("shop_ridges") && g.boughtRidges.length < this.rules.ridges_for_sale.length) {
       const idx = this.rules.ridges_for_sale.findIndex((_, i) => !g.boughtRidges.includes(i));
       const free = this.rules.ridges_for_sale[idx];
-      if (free && tut.show("new_ridge", free.position[0] + 24, free.position[1] + 4)) this.setBuyTarget(`ridge:${idx}`);
+      if (free && tut.show("new_ridge", free.position[0] + free.dimensions[0] / 2, free.position[1] + free.dimensions[1] / 2)) this.setBuyTarget(`ridge:${idx}`);
     }
-    if (g.hasMark("shop_well") && !g.well && tut.show("well", 188, 480)) this.setBuyTarget("well");
+    if (g.hasMark("shop_well") && !g.well && tut.show("well", this.well.x + this.well.width / 2, this.well.y + this.well.height / 2)) this.setBuyTarget("well");
   }
 
   /**
@@ -328,7 +331,8 @@ export class Farm extends Container {
     if (!plants) return toast(this.ui, "Сначала посадите растение");
     const free = this.game.storageMax - this.game.storageCount();
     let warning = "";
-    if (this.game.water < plants) warning = t.warnings.low_water;
+    if (this.game.water <= 0) warning = "Нет воды. Все равно начать день?"; // воды нет совсем
+    else if (this.game.water < plants) warning = t.warnings.low_water;
     else if (free <= 0) warning = "Нет места на складе. Все равно начать день?"; // места нет совсем
     else if (free < plants) warning = t.warnings.low_storage_capacity;
     if (warning && audio.options.warnings) {
@@ -676,7 +680,7 @@ export class Farm extends Container {
       this.helper = null;
     }
     if (!this.game.helper || this.helper) return;
-    this.helper = new Helper(this.rules, this.game, [255, 285]);
+    this.helper = new Helper(this.rules, this.game, HELPER_HOME[this.rules.location] ?? [255, 285]);
     this.helper.visible = this.mode === "day";
     this.objects.addChild(this.helper);
   }

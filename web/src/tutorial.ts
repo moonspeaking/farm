@@ -33,6 +33,9 @@ export class Reminder {
 /** Пузыри экрана подготовки (ShopScreenFarm): держатся, пока игрок не сделает действие. */
 const SHOP_BALLOONS = new Set(["first_vegetation", "sell_prod", "buy_water"]);
 
+/** Подсказки покупок: в XML они привязаны к координатам первой фермы, а на других фермах объекты стоят иначе, поэтому привязываем к центру самого объекта. */
+const AT_OBJECT = new Set(["barrel", "box", "new_ridge", "well"]);
+
 export class Tutorial extends Container {
   private life = 0;
   private after: (() => void) | null = null;
@@ -89,13 +92,16 @@ export class Tutorial extends Container {
     this.current = id;
     this.after = after ?? null;
     const step = this.rules.tutorial_steps[id];
-    const relative = !step || step.pos[0] === 0;
+    const relative = !step || step.pos[0] === 0 || AT_OBJECT.has(id);
+    let tipOffset: [number, number] = step ? [step.pos[0], step.pos[1]] : [0, 0];
     const box = new Container();
 
     // затемнение; светлая картинка под ним: у портретов говорящих (talker_*) она рисуется, у остальных вырезается из плёнки
     if (step?.image) {
       const pic = image(step.image);
       if (relative) pic.position.set(x - pic.width / 2, y - pic.height / 2);
+      // остриё — на том же расстоянии от центра картинки, что и в XML
+      if (AT_OBJECT.has(id)) tipOffset = [step.pos[0] - (step.image_pos[0] + pic.width / 2), step.pos[1] - (step.image_pos[1] + pic.height / 2)];
       else pic.position.set(...step.image_pos);
       const drawn = step.image.startsWith("talker_");
       if (!drawn) pic.blendMode = "erase";
@@ -118,7 +124,7 @@ export class Tutorial extends Container {
     const w = Math.max(label.textWidth, 60) + 14;
     const h = label.textHeight + 10 + (withClose ? 36 : 0);
     // точка, на которую указывает хвостик
-    const tip: [number, number] = relative ? [x + (step?.pos[0] ?? 0), y + (step?.pos[1] ?? 0)] : [step.pos[0], step.pos[1]];
+    const tip: [number, number] = relative ? [x + tipOffset[0], y + tipOffset[1]] : [step.pos[0], step.pos[1]];
     const pointer = step ? step.pointer : true;
     const rightTail = tip[0] >= W / 2;
     const above = !pointer || tip[1] - 17 - h >= 4;
