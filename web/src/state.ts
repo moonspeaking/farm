@@ -295,6 +295,12 @@ export class Game {
     return Math.max(0, this.level - 1 - spent);
   }
 
+  /** Очки, которые есть куда вложить: если все доступные умения уже на максимуме (умения Робина — только пока он на ферме), напоминать не о чем. */
+  get spendablePoints() {
+    const open = SKILLS.some((k) => this.skills[k] < 5 && (!k.startsWith("helper_") || this.helper));
+    return open ? this.skillPoints : 0;
+  }
+
   /** Сумма добавок key по взятым уровням умения; не больше предела из skill_limits. */
   bonus(skill: SkillName, key: string) {
     const levels = this.rules.skills[skill] ?? [];

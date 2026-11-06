@@ -1,5 +1,5 @@
 // Ферма первой локации «Фермы Айрис»: подготовка к дню (магазин на объектах) → день → итоги.
-import { Container, Graphics, Sprite, Texture } from "pixi.js";
+import { Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
 import { audio } from "./audio";
 import { BouquetScreen } from "./bouquets";
 import { PathGrid } from "./pathgrid";
@@ -143,7 +143,6 @@ export class Farm extends Container {
   /** Колодец (WellControl, 0x4afac0): пауза после использования и наполнение ведра в секундах (0 … fill_time). */
   /** Серии быстрых действий: сбор и полив считаются отдельно. */
   private readonly combo = { gather: 1, pour: 1 };
-  private wellCooldown = 0;
   private wellProgress = 0;
   private endPrompt: Container | null = null;
   /** Пустая грядка, на которой сейчас показана кнопка «Посадить растение». */
@@ -153,6 +152,7 @@ export class Farm extends Container {
   /** Покупка (грядка, бочка, ящик, колодец), у которой сейчас показана кнопка «Купить». */
   private buyTarget: string | null = null;
   private skillReminded = false;
+  private skillBubbleTick: ((dt: number) => void) | null = null;
 
   private unsubscribe: () => void = () => undefined;
 
@@ -175,8 +175,11 @@ export class Farm extends Container {
     const wl = rules.well;
     this.well = image("well");
     this.well.position.set(wl.position[0] + wl.image_offset[0], wl.position[1] + wl.image_offset[1]);
+    // нажимается только само ведро; картинка колодца большая и перекрывала бы грядки и вредителей. Пока колодец не куплен,
+    // он реагирует (кнопка «Купить», подсказка) лишь на своей площадке — прямоугольнике препятствия, где ничего не растёт
     this.well.eventMode = "static";
-    this.well.cursor = "default"; // «pour» включает syncWellCursor
+    this.well.hitArea = new Rectangle(-wl.image_offset[0], -wl.image_offset[1], wl.dimensions[0], wl.dimensions[1]);
+    this.well.cursor = "default";
     this.well.on("pointertap", () => this.tapWell());
     this.well.on("pointerover", () => this.setBuyTarget("well"));
     // вода в ведре — тот же Filled, что у бочки: картинка воды опускается на pail_height при пустом ведре (0x40d110)
@@ -281,11 +284,40 @@ export class Farm extends Container {
       if (free && tut.show("new_ridge", free.position[0] + 24, free.position[1] + 4)) this.setBuyTarget(`ridge:${idx}`);
     }
     if (g.hasMark("shop_well") && !g.well && tut.show("well", 188, 480)) this.setBuyTarget("well");
-    // при открытии фермы напоминаем, что есть неиспользованные очки умений (один раз за открытие, подсказка у числа уровня)
-    if (!this.skillReminded) {
-      this.skillReminded = true;
-      if (g.skillPoints > 0) tut.show("level_up", 52, 140, true);
-    }
+  }
+
+  /**
+   * При открытии фермы напоминаем о неиспользованных очках умений. Свой пузырь, не очередь обучения: подсказки магазина висят,
+   * пока игрок не сделает действие, и очередь до напоминания не доходила. Показывается один раз за открытие, гаснет по нажатию или через 8 с.
+   */
+  private remindSkills() {
+    this.skillReminded = true;
+    const points = this.game.spendablePoints;
+    if (points <= 0) return;
+    const label = pop(`Есть неиспользованные очки умений: ${points}.\nНажмите на полоску опыта, чтобы выбрать умение.`, "Verdana14", COLOR.white, { wrap: 230 });
+    const w = label.textWidth + 16;
+    const h = label.textHeight + 12;
+    const bx = 70;
+    const by = 100;
+    const bubble = new Container();
+    bubble.addChild(new Graphics().roundRect(bx, by, w, h, 6).fill({ color: 0x116615, alpha: 230 / 255 }).stroke({ color: 0xffd25a, width: 1.5 }));
+    // хвостик влево, к числу и полоске опыта
+    bubble.addChild(new Graphics().poly([bx, by + h / 2 - 6, bx - 10, by + h / 2, bx, by + h / 2 + 6]).fill({ color: 0x116615, alpha: 230 / 255 }));
+    label.position.set(bx + 8, by + 6);
+    bubble.addChild(label);
+    bubble.eventMode = "none";
+    this.ui.addChild(bubble);
+    let left = 8;
+    const off = () => {
+      window.removeEventListener("pointerdown", off);
+      this.skillBubbleTick = null;
+      bubble.destroy({ children: true });
+    };
+    window.setTimeout(() => window.addEventListener("pointerdown", off), 0);
+    this.skillBubbleTick = (dt) => {
+      left -= dt;
+      if (left <= 0) off();
+    };
   }
 
   private async startDay() {
@@ -318,8 +350,7 @@ export class Farm extends Container {
     this.clearShop();
     this.syncWell();
     // начало дня (0x411ba3): ведро полное, пауза сброшена
-    this.wellCooldown = 0;
-    this.wellProgress = this.rules.well.fill_time;
+    this.wellProgress = this.wellFillTime();
     this.pail.level = 1;
     // погода дня (exe, 0x411bbe): до 5-го дня всегда обычная, дальше rand() % 3 — поровну обычная, солнце, дождь
     const w: Weather = this.game.day < 5 ? "normal" : (["normal", "sun", "rain"] as const)[Math.floor(Math.random() * 3)];
@@ -422,6 +453,8 @@ export class Farm extends Container {
     // днём окно подсказки с затемнением ставит игру на паузу до «Закрыть» (exe 0x476cd0); простой пузырь — нет, он гаснет через 10 с
     const waiting = this.mode === "day" && this.tutorial.blocking;
     this.tutorial.update(dt);
+    this.skillBubbleTick?.(dt);
+    if (!this.skillReminded && this.mode === "shop" && !this.paused && audio.options.warnings) this.remindSkills();
     this.bouquets?.update(dt);
     if (this.paused || waiting) return;
     if (this.mode !== "day" && !this.bouquets && this.startBtn.visible) {
@@ -715,22 +748,26 @@ export class Farm extends Container {
   // ================================================================ колодец и бочки
 
   /**
-   * Колодец (exe: WellItem 0x4510b0, WellControl 0x4afac0 / 0x4afc80 / 0x4afb30): поля delay = 20, fill_time = 1,
-   * water_capacity = 5, pail_height = 17. В начале дня ведро полное. Пока пауза не кончилась, она убывает; потом
-   * наполнение растёт на dt за кадр до fill_time. Нажатие отдаёт round(наполнение / fill_time · water_capacity) литров
-   * (не больше свободного места в бочках; при нуле ничего не происходит), после чего наполнение 0 и пауза delay секунд.
+   * Колодец (exe: WellItem 0x4510b0, WellControl 0x4afac0 / 0x4afc80): delay = 20, fill_time = 1, water_capacity = 5. В начале дня ведро полное.
+   * Нажатие отдаёт round(наполнение · water_capacity) литров (не больше свободного места в бочках), после чего ведро пустое и снова
+   * наполняется. По желанию игрока наполнение плавное: уровень воды растёт все delay + fill_time секунд, раннее нажатие даёт меньше воды.
    */
+  /** Сколько секунд ведро наполняется от пустого до полного (в данных пауза delay = 20 и наполнение fill_time = 1 идут подряд). */
+  private wellFillTime() {
+    return this.rules.well.delay + this.rules.well.fill_time;
+  }
+
   private updateWell(dt: number) {
-    const w = this.rules.well;
-    if (this.wellCooldown <= 0) this.wellProgress = Math.min(w.fill_time, this.wellProgress + dt);
-    else this.wellCooldown -= dt;
-    this.pail.level = this.wellProgress / w.fill_time;
+    // пауза и наполнение слиты в одно: после использования ведро плавно наполняется все delay + fill_time секунд (видно, как растёт вода)
+    const full = this.wellFillTime();
+    this.wellProgress = Math.min(full, this.wellProgress + dt);
+    this.pail.level = this.wellProgress / full;
   }
 
   /** Курсор с бочкой над колодцем и ведром — только днём и пока в ведре есть вода. */
   private syncWellCursor() {
     const w = this.rules.well;
-    const liters = Math.floor((this.wellProgress / w.fill_time) * w.water_capacity + 0.5);
+    const liters = Math.floor((this.wellProgress / this.wellFillTime()) * w.water_capacity + 0.5);
     const cursor = this.mode === "day" && this.game.well && liters > 0 ? "pour" : "default";
     this.well.cursor = cursor;
     this.pail.cursor = cursor;
@@ -741,11 +778,10 @@ export class Farm extends Container {
     if (this.mode !== "day" || this.paused) return;
     const w = this.rules.well;
     const room = this.game.waterMax - this.game.water;
-    const n = Math.min(Math.floor((this.wellProgress / w.fill_time) * w.water_capacity + 0.5), room);
+    const n = Math.min(Math.floor((this.wellProgress / this.wellFillTime()) * w.water_capacity + 0.5), room);
     if (n <= 0) return room <= 0 ? toast(this.ui, "Бочки полны") : undefined;
     this.game.water += n;
     this.wellProgress = 0;
-    this.wellCooldown = w.delay;
     this.pail.level = 0;
     audio.play("well_use");
     this.game.changed();
@@ -785,6 +821,7 @@ export class Farm extends Container {
     const owned = this.game.well;
     this.well.visible = owned || (this.mode === "shop" && this.game.hasMark("shop_well"));
     this.well.alpha = owned ? 1 : 0.5;
+    this.well.eventMode = owned ? "none" : "static"; // купленный колодец не ловит нажатия — работает только ведро
     this.pail.visible = owned;
   }
 

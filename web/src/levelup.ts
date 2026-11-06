@@ -1,5 +1,5 @@
 // Окно умений (level_up): две колонки — Айрис слева, Робин справа; очко умений вкладывается кнопкой «Поднять Уровень».
-import { Container, Graphics, NineSliceSprite } from "pixi.js";
+import { Container, Graphics, NineSliceSprite, Rectangle, Sprite, Texture } from "pixi.js";
 import { audio } from "./audio";
 import type { PopLabel } from "./popfont";
 import { fmt, Rules } from "./rules";
@@ -38,6 +38,8 @@ export class LevelUp extends Container {
   private hover: SkillName | null = null;
   private readonly box = new Container();
   private desc!: PopLabel;
+  /** На сколько пикселей окно вытянуто вниз ради длинных описаний. */
+  private readonly extra: number;
   private readonly marks = new Container();
   private readonly buttonHolder = new Container();
 
@@ -52,8 +54,10 @@ export class LevelUp extends Container {
     shade.eventMode = "static";
     this.box.eventMode = "static"; // нажатия по самому окну не закрывают его (закрывает щелчок мимо)
     this.addChild(shade, this.box);
-    this.box.position.set((W - 349) / 2 + 40, (H - 446) / 2);
-    this.box.addChild(image("lu_back"));
+    // шрифт описания оригинальный (без уменьшения); если самое длинное описание не помещается в свиток, окно вытягивается вниз
+    this.extra = this.descExtra();
+    this.box.position.set((W - 349) / 2 + 40, (H - 446 - this.extra) / 2);
+    this.box.addChild(...this.background());
 
     // портреты в круглых окошках (картинка 103 × 97 лежит в левом верхнем углу позиции XML — тогда круг совпадает с нарисованным в фоне):
     // girl (32; 30), helper (207; 29)
@@ -156,26 +160,47 @@ export class LevelUp extends Container {
     const can = !!this.selected && points > 0 && g.skills[this.selected] < 5;
     if (can) {
       const b = textButton(t.buttons.level_up ?? "Поднять Уровень", () => this.raise(), "small");
-      b.position.set(84 + 94, 368 + 16);
+      b.position.set(84 + 94, 368 + 16 + this.extra);
       this.buttonHolder.addChild(b);
     } else {
       const ok = textButton(t.buttons.ok ?? "OK", () => this.close(), "small");
-      ok.position.set(157 + 16, 372 + 16);
+      ok.position.set(157 + 16, 372 + 16 + this.extra);
       this.buttonHolder.addChild(ok);
     }
   }
 
-  /** Описание на свитке (область 255 × 80): если не помещается, шрифт уменьшается, пока текст не влезет. */
+  /** Область текста на свитке (внутри рваных краёв): x 60…285, от y 256; базовая высота 84, окно растёт вниз на extra. */
+  private static readonly DESC = { x: 60, y: 256, w: 225, h: 84 };
+
+  /** Насколько нужно вытянуть окно, чтобы самое длинное описание поместилось при оригинальном размере шрифта. */
+  private descExtra(): number {
+    const t = this.rules.texts;
+    let max = 0;
+    for (const text of [...Object.values(t.skill_desc ?? {}), t.tutorial.level_up]) {
+      const l = pop(fmt(text), "Verdana14", COLOR.black, { wrap: LevelUp.DESC.w, lineOffset: -3 });
+      max = Math.max(max, l.textHeight);
+      l.destroy();
+    }
+    return Math.max(0, Math.ceil(max - LevelUp.DESC.h));
+  }
+
+  /** Фон окна: полоса свитка (y 290…320) растягивается по вертикали на extra, верх и низ рисуются как есть. */
+  private background(): Sprite[] {
+    const t = tex("lu_back");
+    const part = (y: number, h: number) => new Sprite(new Texture({ source: t.source, frame: new Rectangle(t.frame.x, t.frame.y + y, t.width, h) }));
+    const top = part(0, 290);
+    const mid = part(290, 30);
+    mid.y = 290;
+    mid.height = 30 + this.extra;
+    const bottom = part(320, t.height - 320);
+    bottom.y = 320 + this.extra;
+    return [top, mid, bottom];
+  }
+
   private setDesc(text: string) {
     this.desc?.destroy();
-    let k = 1;
-    for (;;) {
-      this.desc = pop(text, "Verdana14", COLOR.black, { wrap: 236 / k, lineOffset: -3, scale: k });
-      if (this.desc.textHeight <= 80 || k <= 0.55) break;
-      this.desc.destroy();
-      k -= 0.05;
-    }
-    this.desc.position.set(50, 240);
+    this.desc = pop(text, "Verdana14", COLOR.black, { wrap: LevelUp.DESC.w, lineOffset: -3 });
+    this.desc.position.set(LevelUp.DESC.x, LevelUp.DESC.y);
     this.box.addChildAt(this.desc, this.box.getChildIndex(this.buttonHolder));
   }
 

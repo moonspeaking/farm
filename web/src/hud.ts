@@ -112,11 +112,11 @@ export class Hud extends Container {
     if (cur.text === text) return;
     cur.destroy();
     const probe = pop(text, "float_points", COLOR.white);
-    const k = Math.min(0.85, 21 / Math.max(1, probe.textWidth));
+    const k = Math.min(0.85, 26 / Math.max(1, probe.textWidth));
     probe.destroy();
     const l = pop(text, "float_points", COLOR.white, { align: "center", scale: k });
     l.anchor.set(0.5, 0.5);
-    l.position.set(20, 126);
+    l.position.set(20, 127);
     this.addChildAt(l, this.getChildIndex(this.glow));
     this.values.level = l;
   }
@@ -126,7 +126,7 @@ export class Hud extends Container {
     this.blink += dt;
     this.particles.update(dt);
     this.glow.clear();
-    if (this.blinkOn && this.game.skillPoints > 0) {
+    if (this.blinkOn && this.game.spendablePoints > 0) {
       const a = 0.35 + 0.35 * Math.sin(this.blink * 6);
       this.glow.roundRect(29, 120, 67, 17, 7).stroke({ color: 0xffee66, width: 3, alpha: a });
     }
