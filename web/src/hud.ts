@@ -111,12 +111,14 @@ export class Hud extends Container {
     const cur = this.values.level;
     if (cur.text === text) return;
     cur.destroy();
-    const probe = pop(text, "float_points", COLOR.white);
-    const k = Math.min(0.85, 26 / Math.max(1, probe.textWidth));
+    // цифры сближены (spacing) и вписаны в 22 px между левой рамкой и полоской опыта
+    const spacing = -7;
+    const probe = pop(text, "float_points", COLOR.white, { spacing });
+    const k = Math.min(0.85, 22 / Math.max(1, probe.textWidth));
     probe.destroy();
-    const l = pop(text, "float_points", COLOR.white, { align: "center", scale: k });
+    const l = pop(text, "float_points", COLOR.white, { align: "center", scale: k, spacing });
     l.anchor.set(0.5, 0.5);
-    l.position.set(20, 127);
+    l.position.set(21, 127);
     this.addChildAt(l, this.getChildIndex(this.glow));
     this.values.level = l;
   }

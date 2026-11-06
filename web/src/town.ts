@@ -11,6 +11,8 @@ import { COLOR, image, pop, roundButton, toast } from "./ui";
 export interface TownEvents {
   toFarm(): void;
   toMap(): void;
+  /** Отплытие по квесту: открыть город другой локации. */
+  travel(n: number): void;
   saved(): void;
   /** Кнопка «Меню» левой панели. */
   menu(): void;
@@ -172,6 +174,8 @@ export class Town extends Container {
     this.busy = false;
     this.refresh();
     this.events.saved();
+    const to = this.quests.takeTravel();
+    if (to) return this.events.travel(to);
     // после первого разговора — на ферму (town_show_farm_baloon)
     this.tut.show("town_show_farm_baloon", 630, 60);
   }

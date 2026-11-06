@@ -196,6 +196,7 @@ async function main() {
         show(f);
         f.refresh();
       },
+      travel: (to) => void enter(g, to, "town"),
       toMap: () => {
         show(worldMap!);
         worldMap!.opened();

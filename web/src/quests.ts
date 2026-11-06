@@ -148,9 +148,24 @@ export class QuestEngine {
 
   // ---------------------------------------------------------------- действия
 
+  /** Локация, куда игрока нужно перенести после разговора (отплытие: город и ферма текущей закрыты, открыт город другой локации). */
+  private travel: number | null = null;
+
+  takeTravel() {
+    const n = this.travel;
+    this.travel = null;
+    return n;
+  }
+
   run(actions: Action[], questName: string) {
     const g = this.game;
     const st = this.st;
+    // «Да, я готова к отплытию»: закрывается город текущей локации и открывается город другой — после разговора открываем его
+    if (actions.some((a) => a.type === "disable_town" && a.name === `location_${g.loc}`)) {
+      const to = actions.find((a) => a.type === "enable_town" && a.name !== `location_${g.loc}`);
+      const n = Number(to?.name?.replace("location_", ""));
+      if (n) this.travel = n;
+    }
     for (const a of actions) {
       const n = Number(a.count ?? 0);
       switch (a.type) {

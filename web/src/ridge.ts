@@ -243,8 +243,17 @@ export class RidgeView extends Container {
     const next = p.def.upgrade_to_vegetation;
     if (next && p.def.upgrade > 0 && p.pours >= p.def.upgrade && this.rules.vegetations[next]) {
       const keep = { thirstIn: p.thirstIn, thirstTotal: p.thirstTotal, thirstLost: p.thirstLost, harvested: p.harvested };
+      // несобранные плоды переходят на новую стадию (на тех же узлах, где они есть), а не пропадают при смене картинки растения
+      const ripe = p.products.map((n, i) => ({ n, f: p.ripeFor[i] }));
       this.setPlant(next);
       Object.assign(this.plant!, keep);
+      const np = this.plant!;
+      ripe.forEach(({ n, f }, i) => {
+        if (!n || i >= np.products.length) return;
+        np.products[i] = n;
+        np.ripeFor[i] = f;
+        this.showProduct(i, n);
+      });
       this.events.grew(this);
     }
     return true;

@@ -47,6 +47,8 @@ export interface PopOptions {
   /** Добавка к высоте строки (line_offset в XML). */
   lineOffset?: number;
   scale?: number;
+  /** Добавка к расстоянию между буквами (до масштаба); отрицательная сближает цифры. */
+  spacing?: number;
 }
 
 /**
@@ -113,9 +115,10 @@ export class PopLabel extends Container {
   }
 
   private advance(f: FontData, ch: string) {
-    if (ch === " ") return f.space;
+    const sp = this.opts.spacing ?? 0;
+    if (ch === " ") return f.space + sp;
     const g = f.glyphs[ch] ?? f.glyphs["?"];
-    return g ? g[4] : f.space;
+    return (g ? g[4] : f.space) + sp;
   }
 
   private layout() {
@@ -125,7 +128,7 @@ export class PopLabel extends Container {
     const k = this.opts.scale ?? 1;
     const lineH = (f.height + (this.opts.lineOffset ?? 0)) * k;
     const lines = this.lines(f);
-    const widths = lines.map((l) => [...l].reduce((a, ch) => a + this.advance(f, ch), 0) * k);
+    const widths = lines.map((l) => ([...l].reduce((a, ch) => a + this.advance(f, ch), 0) - (l ? this.opts.spacing ?? 0 : 0)) * k); // после последней буквы расстояние не добавляется
     this.textWidth = Math.max(0, ...widths);
     this.textHeight = lines.length * lineH;
     const align = this.opts.align ?? "left";

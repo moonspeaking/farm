@@ -329,6 +329,7 @@ export class Farm extends Container {
     const free = this.game.storageMax - this.game.storageCount();
     let warning = "";
     if (this.game.water < plants) warning = t.warnings.low_water;
+    else if (free <= 0) warning = "Нет места на складе. Все равно начать день?"; // места нет совсем
     else if (free < plants) warning = t.warnings.low_storage_capacity;
     if (warning && audio.options.warnings) {
       const r = await dialog(this.ui, {
