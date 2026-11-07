@@ -161,7 +161,9 @@ export class QuestEngine {
     const g = this.game;
     const st = this.st;
     // «Да, я готова к отплытию»: закрывается город текущей локации и открывается город другой — после разговора открываем его
-    if (actions.some((a) => a.type === "disable_town" && a.name === `location_${g.loc}`)) {
+    // «Да, поплыли!» у капитана Рейка (wait_travel): город текущей локации остаётся открытым, но игрок отплывает в город 4
+    const sails = actions.some((a) => a.type === "disable_sub_quest" && a.name === "wait_travel");
+    if (sails || actions.some((a) => a.type === "disable_town" && a.name === `location_${g.loc}`)) {
       const to = actions.find((a) => a.type === "enable_town" && a.name !== `location_${g.loc}`);
       const n = Number(to?.name?.replace("location_", ""));
       if (n) this.travel = n;

@@ -145,7 +145,8 @@ export class RidgeView extends Container {
     // капли жажды — у основания растения: у высоких растений третьей фермы (ананас, кактус) точка опоры посередине картинки,
     // и капли на стандартном смещении оказывались над самим растением
     const hungerOffset = this.rules.progresses.vegetation_hunger.offset;
-    const base = this.anchorPoint[1] + hungerOffset[1];
+    // смещение (0; −10) в данных — центр ряда капель, а не нижний край: картинка капли 20 × 34, ряд центрируется по этой точке (exe 0x425860)
+    const base = this.anchorPoint[1] + hungerOffset[1] + tex("drop").height / 2;
     const bottom = view.y + view.height;
     this.drops.y = bottom > this.anchorPoint[1] + 44 ? bottom - 10 : base; // обычные растения не трогаем — только те, что уходят заметно ниже точки опоры
     const dry = new Sprite(silhouette(name));
@@ -415,7 +416,7 @@ export class RidgeView extends Container {
     else this.drops.set(0);
     p.dry.alpha = Math.max(0, Math.min(1, 3 * (0.25 - p.thirstIn / p.thirstTotal)));
     // цветочки жизни убывают так же плавно, как капли: один цветочек = max/3 жизни, последний уменьшается
-    if (this.eatenFor > 0 && p.damage > 0) this.lives.setValue(Math.max(0, max - p.damage), max / 3);
+    if (this.eatenFor > 0 && p.damage > 0) this.lives.setValue(Math.max(0, max - p.damage), max > this.lives.max ? max / this.lives.max : 1);
     else this.lives.set(0);
   }
 

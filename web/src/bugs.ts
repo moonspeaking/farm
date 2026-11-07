@@ -135,7 +135,8 @@ export class Bug extends Actor {
   hit(n: number, byHelper = false, hold = 0) {
     if (this.dead || this.reincornTo) return;
     this.life -= n;
-    this.hearts.setValue(Math.max(0, this.life), this.maxLife / this.hearts.max); // сердечки убывают плавно, как капли: последнее уменьшается
+    // ряд как у капель (exe 0x425860): один сердечек = жизнь / max, а если жизни не больше max — ровно 1; последний уменьшается на долю остатка
+    this.hearts.setValue(Math.max(0, this.life), this.maxLife > this.hearts.max ? this.maxLife / this.hearts.max : 1);
     this.events.hurt(this);
     if (this.life > 0) {
       this.play("hit", 0, 0, true);
