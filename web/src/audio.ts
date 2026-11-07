@@ -114,6 +114,17 @@ class AudioManager {
     }, 2000);
   }
 
+  /** Игру свернули или переключились на другую вкладку — музыка и звуки замолкают, при возвращении продолжаются. */
+  setVisible(visible: boolean) {
+    if (!visible) {
+      this.music?.pause();
+      void this.ctx?.suspend().catch(() => undefined);
+      return;
+    }
+    void this.ctx?.resume().catch(() => undefined);
+    if (this.unlocked && this.music && this.options.music > 0) void this.music.play().catch(() => undefined);
+  }
+
   setOptions(o: Options) {
     this.options = o;
     if (this.soundGain) this.soundGain.gain.value = o.sound;

@@ -45,7 +45,11 @@ async function main() {
   ]);
   // на телефонах звук включается только жестом «отпустил палец» / click — слушаем все события, пока контекст не запустится
   for (const type of ["pointerdown", "pointerup", "touchend", "click", "keydown"]) window.addEventListener(type, () => audio.unlock(), { passive: true });
-  document.addEventListener("visibilitychange", () => !document.hidden && audio.unlock());
+  document.addEventListener("visibilitychange", () => {
+    audio.setVisible(!document.hidden);
+    if (!document.hidden) audio.unlock();
+  });
+  window.addEventListener("pagehide", () => audio.setVisible(false));
   audio.playMusic("menu"); // музыка меню — сразу при открытии; если браузер не разрешил, начнётся с первого касания
   document.title = rules.texts.title;
   loader?.done();
