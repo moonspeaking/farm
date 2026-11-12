@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>Ферма Айрис</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="apple-touch-icon" href="icon-180.png" />
+    <meta name="theme-color" content="#10140c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Ферма Айрис" />
+    <style>html,body{touch-action:none;background:#10140c;height:100%;margin:0;overflow:hidden}#game{position:fixed;inset:0}#loading{z-index:10;background:#000;position:fixed;inset:0}#rotate{z-index:20;color:#e8f0c8;background:#14280ceb;padding:10px 44px 10px 14px;font:14px/1.3 system-ui,sans-serif;display:none;position:fixed;top:0;left:0;right:0}#install{z-index:30;box-sizing:border-box;color:#e8f0c8;background:#14280cf2;border:1px solid #8fb24a;border-radius:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px 10px;width:min(92vw,460px);padding:12px 14px;font:14px/1.35 system-ui,sans-serif;display:flex;position:fixed;bottom:14px;left:50%;transform:translate(-50%);box-shadow:0 4px 18px #00000080}#install span{flex:100%}#install button{font:inherit;color:#14280c;cursor:pointer;background:#8fb24a;border:0;border-radius:6px;padding:7px 14px;font-weight:600}#install button.secondary{color:#e8f0c8;background:0 0;border:1px solid #8fb24a;font-weight:400}#fshint{z-index:20;color:#e8f0c8;white-space:nowrap;background:#14280ce0;border-radius:8px;padding:8px 40px 8px 14px;font:14px/1.3 system-ui,sans-serif;display:none;position:fixed;top:10px;left:50%;transform:translate(-50%)}#fshint kbd{font:inherit;background:#8fb24a33;border:1px solid #8fb24a;border-radius:4px;padding:1px 7px;font-weight:700;display:inline-block}#fshint b{cursor:pointer;font-size:20px;position:absolute;top:5px;right:12px}#rotate b{cursor:pointer;font-size:22px;position:absolute;top:6px;right:12px}#loadcv{width:100%;height:100%;position:absolute;inset:0}</style>
+    <script type="module" crossorigin src="./assets/index-tfyz0vCZ.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/CanvasPool-BKClwQdf.js">
+    <link rel="modulepreload" crossorigin href="./assets/Filter-sP9b3veh.js">
+    <link rel="modulepreload" crossorigin href="./assets/canvasUtils-B0HNDru7.js">
+    <link rel="modulepreload" crossorigin href="./assets/Cache-fNcOcM1E.js">
+    <link rel="modulepreload" crossorigin href="./assets/GCManagedHash-BNMlzcZi.js">
+    <link rel="modulepreload" crossorigin href="./assets/RenderTargetSystem-CapGG0St.js">
+    <link rel="modulepreload" crossorigin href="./assets/getTextureBatchBindGroup-CIH9f4hr.js">
+    <link rel="modulepreload" crossorigin href="./assets/GraphicsContext-_4bDhvjE.js">
+    <link rel="modulepreload" crossorigin href="./assets/getTexelRangeRects-D8zNd9qK.js">
+  <script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script></head>
+  <body>
+    <div id="loading"><canvas id="loadcv"></canvas></div>
+    <script>
+      // Экран загрузки оригинала (BugsLoadingScreen, exe 0x472f80 / 0x472da0): ромашка в (356; 200) зацветает по показанному
+      // проценту; вредитель стоит в x = (1 − процент) · 800 и ползёт справа налево, надпись приклеена справа к нему
+      (function () {
+        var cv = document.getElementById("loadcv");
+        var ctx = cv.getContext("2d");
+        var W = 800, H = 600, POS_Y = 300; // loading pos_y из properties_ru.xml
+        var BUGS = { snail: 1, kloun: 0.5, pchela: 1, etti: 1, krab: 0.5, spirit: 1, helper: 1, gusenica: 0.5, bug: 0.6 }; // время круга анимации, с
+        var names = Object.keys(BUGS);
+        var bugName = names[Math.floor(Math.random() * names.length)];
+        var flower = new Image();
+        flower.src = "img/load_progress.webp";
+        var bug = new Image();
+        bug.src = "img/bug_" + bugName + "_move_right.webp";
+        // target — реальная доля загрузки; shown догоняет её. В оригинале не быстрее dt / 5 (20 % в секунду, экран минимум 5 с) —
+        // здесь ровно, без разгона и торможения: не быстрее 1/3 в секунду — экран держится минимум 3 с. fade — появление экрана за 0,2 с
+        var target = 0, shown = 0, fade = 0, finished = false, alive = true, t0 = performance.now(), last = t0;
+        var el = document.getElementById("loading");
+        // каждый клик (касание) по экрану загрузки сокращает ожидание на 1 с: процент сразу прибавляет треть шкалы,
+        // но не обгоняет реальную загрузку
+        el.addEventListener("pointerdown", function () { shown = Math.min(target, shown + 1 / 3); });
+        function resize() {
+          var d = window.devicePixelRatio || 1;
+          cv.width = innerWidth * d;
+          cv.height = innerHeight * d;
+        }
+        resize();
+        addEventListener("resize", resize);
+        function frame(now) {
+          if (!alive) return;
+          var dt = Math.min((now - last) / 1000, 0.1);
+          last = now;
+          if (shown < target) shown = Math.min(target, shown + dt / 3);
+          fade = Math.min(1, fade + dt * 5);
+          // экран закрывается, когда загрузка закончена и показано больше 99,99 %
+          if (finished && shown > 0.9999) {
+            alive = false;
+            el.style.display = "none";
+            return;
+          }
+          var k = Math.min(cv.width / W, cv.height / H);
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = "#000";
+          ctx.fillRect(0, 0, cv.width, cv.height);
+          ctx.setTransform(k, 0, 0, k, (cv.width - W * k) / 2, (cv.height - H * k) / 2);
+          ctx.globalAlpha = fade;
+          var t = (now - t0) / 1000;
+          // порядок оригинала: вредитель, ромашка, надпись
+          var bw = 0, bh = 0, bx = Math.floor((1 - shown) * W + 0.5);
+          if (bug.complete && bug.naturalWidth) {
+            bw = bug.naturalWidth;
+            bh = Math.floor(bug.naturalHeight / 11);
+            var bi = Math.floor((t / BUGS[bugName]) * 11) % 11;
+            // ползёт влево, а в оригинале взята анимация move/right и вредитель пятится — отражаем её, как левые направления на ферме
+            ctx.save();
+            ctx.translate(bx + bw, POS_Y - Math.floor(bh / 2));
+            ctx.scale(-1, 1);
+            ctx.drawImage(bug, 0, bi * bh, bw, bh, 0, 0, bw, bh);
+            ctx.restore();
+          }
+          if (flower.complete && flower.naturalWidth) {
+            var fh = Math.floor(flower.naturalHeight / 12);
+            var idx = Math.min(11, Math.floor(shown * 12 + 0.001));
+            // в skin_ru.xml (356; 200), но тогда низ ромашки (с ореолом y + 85) задевает вредителя, проходящего под ней:
+            // самый высокий (etti) достаёт до y = 257. Подняли на 32 px, чтобы ни один вредитель её не касался
+            ctx.drawImage(flower, 0, idx * fh, flower.naturalWidth, fh, 356, 168, flower.naturalWidth, fh);
+          }
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 24px Verdana, system-ui, sans-serif";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.shadowColor = "#000";
+          ctx.shadowBlur = 4;
+          // надпись — сразу за вредителем, по центру его высоты
+          ctx.fillText("Идет загрузка... (" + Math.round(shown * 100) + "%)", bx + bw, POS_Y - Math.floor(bh / 2) + bh / 2);
+          ctx.shadowBlur = 0;
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+        window.__loader = {
+          /** Показывает экран снова (загрузка следующей локации): прогресс с нуля. */
+          show: function () {
+            target = 0;
+            shown = 0;
+            fade = 0;
+            finished = false;
+            t0 = last = performance.now();
+            el.style.display = "block";
+            resize();
+            if (!alive) {
+              alive = true;
+              requestAnimationFrame(frame);
+            }
+          },
+          /** Доля загрузки 0…1. */
+          set: function (p) { target = Math.max(target, Math.min(1, p)); },
+          /** Загрузка закончена: экран прячется, когда показанный процент дойдёт до 100. */
+          done: function () {
+            target = 1;
+            finished = true;
+          },
+          fail: function (text) {
+            alive = false;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, cv.width, cv.height);
+            ctx.fillStyle = "#e8f0c8";
+            ctx.font = "18px system-ui, sans-serif";
+            ctx.fillText(text, 20, 40);
+          },
+        };
+      })();
+    </script>
+    <div id="game"></div>
+    <div id="fshint">Нажмите <kbd>F</kbd>, чтобы играть во весь экран<b id="fshint-close">×</b></div>
+    <div id="rotate">Поверните телефон горизонтально: игра станет крупнее и читабельнее.<b id="rotate-close">×</b></div>
+  </body>
+</html>
