@@ -147,6 +147,16 @@ def pick(el, fields):
     return out
 
 
+def node_products(el):
+    """Свои плоды узлов растения: у узла с available_products > 0 плод берётся из его списка (так у кактуса — капля воды p_cactus_water),
+    у остальных — из общего списка растения. null — узел без своего списка."""
+    out = []
+    for n in el.find("nodes"):
+        k = int(n.attrib.get("available_products", 0))
+        out.append([{"product": p.attrib["product"], "probability": float(p.attrib.get("probability", 1))} for p in list(n)[:k]] if k else None)
+    return out
+
+
 def ridge_list(el):
     count = int(el.attrib.get("ridges_count", len(el)))
     return [{"position": vec(r.attrib["position"]), "dimensions": vec(r.attrib["dimensions"])}
@@ -351,12 +361,13 @@ def collect_vegetations(seeds, veg_root, prod_root, vegetations, products):
         v["nodes"] = [vec(n.attrib["offset"]) for n in el.find("nodes")]
         v["products"] = [p.attrib["product"] for p in el.find("products")]
         v["probabilities"] = [float(p.attrib.get("probability", 1)) for p in el.find("products")]
+        v["node_products"] = node_products(el)
         vegetations[name] = v
         nxt = v.get("upgrade_to_vegetation")
         if nxt and veg_root.find(nxt) is not None:
             queue.append(nxt)
     for v in vegetations.values():
-        for p in v["products"]:
+        for p in v["products"] + [q["product"] for n in v["node_products"] if n for q in n]:
             if p in products:
                 continue
             el = prod_root.find(p)
@@ -483,17 +494,19 @@ def main():
         v["nodes"] = [vec(n.attrib["offset"]) for n in el.find("nodes")]
         v["products"] = [p.attrib["product"] for p in el.find("products")]
         v["probabilities"] = [float(p.attrib.get("probability", 1)) for p in el.find("products")]
+        v["node_products"] = node_products(el)
         vegetations[name] = v
         nxt = v.get("upgrade_to_vegetation")
         if nxt and veg_root.find(nxt) is not None:
             queue.append(nxt)
     prod_root = props.find("products")
     for v in vegetations.values():
-        for p in v["products"]:
+        for p in v["products"] + [q["product"] for n in v["node_products"] if n for q in n]:
             el = prod_root.find(p)
             inner = el.find(p)
             products[p] = {"price": int(el.attrib["price"]), "exp": int(el.attrib.get("exp", 0)),
-                           "offset": vec(inner.attrib["offset"]) if inner is not None else [0, 0]}
+                           "offset": vec(inner.attrib["offset"]) if inner is not None else [0, 0],
+                           "bonuses": el.attrib.get("bonuses", "")}
 
     # ---------------- ферма: лунки, бочки, ящики, колодец, длина дня
     loc1 = next(l for l in props.iter("location_1") if l.find("farm") is not None)

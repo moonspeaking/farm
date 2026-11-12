@@ -17,12 +17,16 @@ export interface Vegetation {
   nodes: [number, number][];
   products: string[];
   probabilities: number[];
+  /** Свои плоды узлов (null — берётся общий список): у кактуса узел с каплей воды p_cactus_water. */
+  node_products?: ({ product: string; probability: number }[] | null)[];
 }
 
 export interface Product {
   price: number;
   exp: number;
   offset: [number, number];
+  /** add_water — при сборе добавляет литр воды вместо плода на склад. */
+  bonuses?: string;
 }
 
 export interface Place {

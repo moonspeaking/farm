@@ -40,6 +40,9 @@ interface Plant extends PlantSave {
   ripeFor: number[];
 }
 
+/** Сколько литров даёт вода из кактуса (по памяти игрока — 3 у большого; в exe одно применение бонуса кладёт 1 предмет «вода»). */
+const CACTUS_WATER = 3;
+
 export interface RidgeEvents {
   /** Нажатие по лунке или растению (ферма решает, что делать). */
   tap(ridge: RidgeView): void;
@@ -314,11 +317,12 @@ export class RidgeView extends Container {
     if (!p || !name) return;
     const g = this.game;
     const ripeFor = p.ripeFor[i];
-    if (g.storageCount() >= g.storageMax) {
+    // вода кактуса (bonuses="add_water", AddWaterBonus): вместо плода в хранилище — CACTUS_WATER литров воды в бочку, место в ящиках не нужно
+    if (this.rules.products[name]?.bonuses === "add_water") g.water = Math.min(g.waterMax, g.water + CACTUS_WATER);
+    else if (g.storageCount() >= g.storageMax) {
       const at = { x: this.x + this.anchorPoint[0], y: this.y - 20 };
       return this.events.say(this.rules.texts.events.no_room ?? "Хранилище заполнено", at.x, at.y);
-    }
-    g.storage.set(name, (g.storage.get(name) ?? 0) + 1);
+    } else g.storage.set(name, (g.storage.get(name) ?? 0) + 1);
     const at = { x: this.x + p.view.x + p.def.nodes[i][0], y: this.y + p.view.y + p.def.nodes[i][1] - 20 };
     p.views[i]?.destroy();
     p.views[i] = null;
@@ -332,14 +336,18 @@ export class RidgeView extends Container {
     const p = this.plant!;
     const free = p.products.findIndex((s) => s === null);
     if (free < 0) return false;
-    // продукт выбирается по вероятностям probability из XML
-    const total = p.def.probabilities.reduce((a, b) => a + b, 0);
+    // узел выбирается случайно среди свободных (0x42eed0), а плод — по вероятностям из списка узла (если у узла свой список, как у капли
+    // воды кактуса) или из общего списка растения (0x430170)
+    const list = p.def.node_products?.[free];
+    const names = list ? list.map((x) => x.product) : p.def.products;
+    const probs = list ? list.map((x) => x.probability) : p.def.probabilities;
+    const total = probs.reduce((a, b) => a + b, 0);
     let r = Math.random() * total;
     let k = 0;
-    while (k < p.def.products.length - 1 && (r -= p.def.probabilities[k]) > 0) k++;
-    p.products[free] = p.def.products[k];
+    while (k < names.length - 1 && (r -= probs[k]) > 0) k++;
+    p.products[free] = names[k];
     p.ripeFor[free] = 0;
-    this.showProduct(free, p.def.products[k]);
+    this.showProduct(free, names[k]);
     const at = { x: this.x + p.view.x + p.def.nodes[free][0], y: this.y + p.view.y + p.def.nodes[free][1] };
     this.events.appeared(this, at.x, at.y);
     return true;

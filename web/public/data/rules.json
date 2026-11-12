@@ -761,6 +761,16 @@
    "probabilities": [
     3.0,
     1.0
+   ],
+   "node_products": [
+    null,
+    null,
+    [
+     {
+      "product": "p_cactus_water",
+      "probability": 1.0
+     }
+    ]
    ]
   },
   "nopal_2": {
@@ -877,6 +887,17 @@
     5.0,
     3.0,
     1.0
+   ],
+   "node_products": [
+    null,
+    null,
+    null,
+    [
+     {
+      "product": "p_cactus_water",
+      "probability": 1.0
+     }
+    ]
    ]
   },
   "nopal_3": {
@@ -1529,6 +1550,15 @@
     -20.0
    ],
    "bonuses": ""
+  },
+  "p_cactus_water": {
+   "price": 3,
+   "exp": 3,
+   "offset": [
+    -15.0,
+    -10.0
+   ],
+   "bonuses": "add_water"
   }
  },
  "ridges": [
@@ -13563,6 +13593,7 @@
   "p_cactus_1",
   "p_cactus_2",
   "p_cactus_3",
+  "p_cactus_water",
   "p_fern_1",
   "p_fern_2",
   "p_fern_3",
@@ -13756,6 +13787,7 @@
   "p_cactus_1",
   "p_cactus_2",
   "p_cactus_3",
+  "p_cactus_water",
   "p_fern_1",
   "p_fern_2",
   "p_fern_3",

@@ -33,6 +33,8 @@ export class BouquetScreen extends Container {
   private readonly basket = new Container();
   private readonly orders = new Container();
   private readonly drag = new Container();
+  /** Описание плода: показывается, пока зажата иконка в ячейке продажи. */
+  private readonly tip = new Container();
   private loose: Loose[] = [];
   /** slot — откуда взят цветок, если он лежал в букете (а не в корзине). */
   private held: { product: string; sprite: Sprite; from: Sprite; slot?: { oi: number; si: number } } | null = null;
@@ -64,7 +66,9 @@ export class BouquetScreen extends Container {
   ) {
     super();
     const t = rules.texts;
-    this.addChild(image("bq_back"), this.slots, this.orders, this.basket, this.drag);
+    this.addChild(image("bq_back"), this.slots, this.orders, this.basket, this.drag, this.tip);
+    this.tip.eventMode = "none";
+    this.tip.visible = false;
     this.eventMode = "static";
     this.hitArea = new Rectangle(0, 0, 800, 600);
 
@@ -99,6 +103,7 @@ export class BouquetScreen extends Container {
 
   private render() {
     this.slots.removeChildren().forEach((c) => c.destroy({ children: true }));
+    this.tip.visible = false;
     const t = this.rules.texts;
     this.products().slice(0, 9).forEach((product, i) => {
       const n = this.game.storage.get(product) ?? 0;
@@ -114,6 +119,10 @@ export class BouquetScreen extends Container {
       pic.anchor.set(0.5);
       pic.scale.set(Math.min(1, 60 / pic.texture.width, 50 / pic.texture.height));
       pic.position.set(30, 46);
+      // зажатая иконка показывает название и описание плода (как p_*_desc в оригинале)
+      pic.eventMode = "static";
+      pic.on("pointerdown", () => this.showTip(product, x + 30, y + 46));
+      for (const ev of ["pointerup", "pointerupoutside", "pointerleave"]) pic.on(ev, () => (this.tip.visible = false));
       // количество — справа от коробочки, нарисованной в фоне (по центру оно налезало на неё)
       const count = pop(String(n), "BritannicBold14", COLOR.black);
       count.anchor.set(0, 0.5);
@@ -130,6 +139,22 @@ export class BouquetScreen extends Container {
       this.slots.addChild(slot);
     });
     this.renderOrders();
+  }
+
+  private showTip(product: string, cx: number, cy: number) {
+    const names = this.rules.texts.names;
+    const text = fmt(names[`${product}_desc`]) || fmt(names[product]);
+    if (!text) return;
+    this.tip.removeChildren().forEach((c) => c.destroy({ children: true }));
+    const label = pop(text, "Verdana14", COLOR.white, { wrap: 240 });
+    const w = label.width + 16;
+    const h = label.height + 12;
+    const bx = Math.max(4, Math.min(800 - w - 4, cx - w / 2));
+    const by = Math.min(600 - h - 4, cy + 36);
+    const back = new Graphics().roundRect(bx, by, w, h, 6).fill({ color: 0x000000, alpha: 0.8 });
+    label.position.set(bx + 8, by + 6);
+    this.tip.addChild(back, label);
+    this.tip.visible = true;
   }
 
   private sell(product: string, n: number) {
