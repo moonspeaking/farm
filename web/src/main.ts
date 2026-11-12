@@ -93,6 +93,16 @@ async function main() {
   document.addEventListener("fullscreenchange", checkFs);
   window.addEventListener("resize", checkFs);
   checkFs();
+  // браузер не даёт включить полный экран без действия игрока, поэтому входим в него при первом касании/клике/клавише (один раз за запуск:
+  // если игрок вышел сам, больше не принуждаем); свёрнутый PWA и так без рамки браузера
+  if (document.documentElement.requestFullscreen && !matchMedia("(display-mode: fullscreen)").matches) {
+    const enter = (e: Event) => {
+      if (e instanceof KeyboardEvent && (e.code === "Escape" || e.code === "KeyF")) return;
+      for (const ev of ["pointerup", "keydown"]) window.removeEventListener(ev, enter, true);
+      if (!document.fullscreenElement) void document.documentElement.requestFullscreen().catch(() => undefined);
+    };
+    for (const ev of ["pointerup", "keydown"]) window.addEventListener(ev, enter, true);
+  }
   const frame = new Graphics().rect(0, 0, W, H).fill(0xffffff);
   world.addChild(frame);
   world.mask = frame;
