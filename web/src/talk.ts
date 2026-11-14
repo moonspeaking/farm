@@ -75,7 +75,11 @@ export class Talk extends Container {
       this.show(node.talker, node.text);
       // ответы — кнопки стиля normal на нижней линии окна (quest_dialog: buttons_down_line 390; 400), по центру правее портрета;
       // если ответов несколько, они идут друг над другом, последний — на линии
-      const list = (node.answers ?? []).filter((a) => active(a));
+      let list = (node.answers ?? []).filter((a) => active(a));
+      // вопрос «принёс нужное количество?»: когда предметов или денег хватает («Да» доступно), «Пока нет» не нужен
+      if (list.some((a) => a.active_if?.some((c) => c.type === "have_items"))) {
+        list = list.filter((a) => a.active_if?.length || a.dialog.length || a.actions.length);
+      }
       list.forEach((a, i) => {
         const b = textButton(fmt(a.text), () => resolve(a));
         b.position.set(397, 383 - (list.length - 1 - i) * 34);
