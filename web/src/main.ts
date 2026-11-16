@@ -16,7 +16,7 @@ import { Game } from "./state";
 import { Town } from "./town";
 import { Tutorial } from "./tutorial";
 import { WorldMap } from "./worldmap";
-import { loadFonts } from "./popfont";
+import { loadFonts, setTextSquash } from "./popfont";
 import { aboutScreen, gameMenu, highscoresScreen, optionsScreen, pauseOverlay, recordScore } from "./screens";
 import { H, hasImages, loadImages, setSharp, toast, unloadImages, W } from "./ui";
 
@@ -63,12 +63,14 @@ async function main() {
     const kx = app.screen.width / W;
     const ky = app.screen.height / H;
     if (audio.options.stretch) {
-      // режим растяжки: окно заполняется целиком, пропорции экрана не сохраняются
+      // режим «Широкий экран»: окно заполняется целиком, пропорции экрана не сохраняются
       world.scale.set(kx, ky);
       world.position.set(0, 0);
+      setTextSquash(ky / kx); // буквы не растягиваются
       setSharp(Math.min(kx, ky) * devicePixelRatio >= 1.75);
       return;
     }
+    setTextSquash(1);
     const k = Math.min(kx, ky);
     world.scale.set(k);
     setSharp(k * devicePixelRatio >= 1.75);

@@ -21,6 +21,16 @@ const fonts = new Map<string, FontData>();
 const sheets = new Map<string, Texture>();
 const cells = new Map<string, Texture>();
 
+/** Множитель ширины надписей: в режиме «Широкий экран» мир растянут по горизонтали, а буквы сжимаются обратно, чтобы не расплывались. */
+let squash = 1;
+const labels = new Set<PopLabel>();
+
+export function setTextSquash(v: number) {
+  if (Math.abs(v - squash) < 1e-4) return;
+  squash = v;
+  for (const l of labels) l.relayout();
+}
+
 export async function loadFonts() {
   const data = (await (await fetch("fonts/fonts.json")).json()) as Record<string, FontData>;
   const images = [...new Set(Object.values(data).map((f) => f.image))];
@@ -76,6 +86,12 @@ export class PopLabel extends Container {
     // по умолчанию точка привязки — по краю выравнивания: left — слева, center — по центру, right — справа
     this.ax = opts.align === "center" ? 0.5 : opts.align === "right" ? 1 : 0;
     this.text = text;
+    labels.add(this);
+    this.once("destroyed", () => labels.delete(this));
+  }
+
+  relayout() {
+    this.layout();
   }
 
   get text() {
@@ -139,21 +155,21 @@ export class PopLabel extends Container {
         if (g) {
           const s = new Sprite(cell(f, g));
           s.tint = this.color;
-          s.scale.set(k);
-          s.position.set(x + g[5] * k, row * lineH + g[6] * k);
+          s.scale.set(k * squash, k);
+          s.position.set((x + g[5] * k) * squash, row * lineH + g[6] * k);
           this.addChild(s);
         }
         x += this.advance(f, ch) * k;
       }
     });
     // щёлкать можно по всему блоку надписи, а не только по самим буквам (между буквами и пробелами клик иначе уходил под кнопку)
-    this.hitArea = new Rectangle(0, 0, this.textWidth, this.textHeight);
+    this.hitArea = new Rectangle(0, 0, this.textWidth * squash, this.textHeight);
     this.place();
   }
 
   private place() {
     // целые пиксели: иначе буквы ложатся между пикселями и расплываются
-    this.pivot.set(Math.round(this.ax * this.textWidth), Math.round(this.ay * this.textHeight));
+    this.pivot.set(Math.round(this.ax * this.textWidth * squash), Math.round(this.ay * this.textHeight));
   }
 }
 

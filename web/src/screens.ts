@@ -153,7 +153,7 @@ export function optionsScreen(parent: Container, rules: Rules, onClose: () => vo
     cur.sparkles = v;
     audio.setOptions({ ...cur });
   });
-  check("Растяжка", 298, () => cur.stretch, (v) => {
+  check("Широкий экран", 298, () => cur.stretch, (v) => {
     cur.stretch = v;
     audio.setOptions({ ...cur });
   });

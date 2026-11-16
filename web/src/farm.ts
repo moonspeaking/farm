@@ -594,7 +594,20 @@ export class Farm extends Container {
   /** Ниже на экране — ближе к зрителю. */
   private sortObjects() {
     const key = (c: Container) => ("depth" in c ? (c.depth as number) : c.y + c.height);
-    this.objects.children.sort((a, b) => key(a) - key(b));
+    const list = this.objects.children;
+    list.sort((a, b) => key(a) - key(b));
+    // картинка колодца заметно шире его препятствия (трава и камни по бокам, нижний край — глубоко внизу): вредитель или Робин
+    // рядом с колодцем, а не за ним, должен рисоваться поверх этой картинки, а не прятаться под травой
+    const wl = this.rules.well;
+    for (const c of [...this.bugs, this.helper] as (Container | undefined)[]) {
+      if (!c || c.parent !== this.objects) continue;
+      if (c.x >= wl.position[0] && c.x <= wl.position[0] + wl.dimensions[0]) continue;
+      const wi = list.indexOf(this.well);
+      const ci = list.indexOf(c);
+      if (ci < 0 || ci > wi) continue;
+      list.splice(ci, 1);
+      list.splice(wi, 0, c); // на место колодца (он сдвинулся на один влево): картинка колодца оказывается под ним
+    }
   }
 
   // ================================================================ вредители и Робин
