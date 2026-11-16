@@ -140,20 +140,24 @@ export function optionsScreen(parent: Container, rules: Rules, onClose: () => vo
   // полный экран включается не мгновенно (и клавишей F тоже) — флажок обновляется, когда режим действительно сменился
   document.addEventListener("fullscreenchange", fullscreenCheck);
   layer.once("destroyed", () => document.removeEventListener("fullscreenchange", fullscreenCheck));
-  check(t.custom_cursor ?? "Специальные Курсоры", 210, () => cur.cursors, (v) => {
+  check("Спец. курсоры", 210, () => cur.cursors, (v) => {
     cur.cursors = v;
     audio.setOptions({ ...cur });
   });
-  check(t.game_warnings ?? "Предупреждения в игре", 243, () => cur.warnings, (v) => {
+  check("Предупреждения", 232, () => cur.warnings, (v) => {
     cur.warnings = v;
     audio.setOptions({ ...cur });
   });
 
-  check("Блестки", 297, () => cur.sparkles, (v) => {
+  check("Блестки", 276, () => cur.sparkles, (v) => {
     cur.sparkles = v;
     audio.setOptions({ ...cur });
   });
-  check("Итоги дня", 275, () => cur.dayStats, (v) => {
+  check("Растяжка", 298, () => cur.stretch, (v) => {
+    cur.stretch = v;
+    audio.setOptions({ ...cur });
+  });
+  check("Итоги дня", 254, () => cur.dayStats, (v) => {
     cur.dayStats = v;
     audio.setOptions({ ...cur });
   });

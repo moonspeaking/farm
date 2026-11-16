@@ -119,10 +119,12 @@ export interface Options {
   dayStats: boolean;
   /** Звёздочки у счётчиков панели, когда значение меняется. */
   sparkles: boolean;
+  /** Растянуть игру на всё окно без полей: круги становятся овалами, текст шире. */
+  stretch: boolean;
 }
 
 export function loadOptions(): Options {
-  const def: Options = { music: 0.5, sound: 0.7, cursors: true, warnings: true, dayStats: false, sparkles: true };
+  const def: Options = { music: 0.5, sound: 0.7, cursors: true, warnings: true, dayStats: false, sparkles: true, stretch: false };
   return { ...def, ...(store.getJson<Partial<Options>>(KEYS.options) ?? {}) };
 }
 

@@ -10,8 +10,19 @@ import { COLOR, image, pop, W, H } from "./ui";
 export function skillNotice(parent: Container, text: string, have: number, next: number, color: number) {
   const box = new Container();
   box.addChild(image("paper_sheet"));
-  const label = pop(text, "Verdana14", COLOR.black, { align: "center", wrap: 215, lineOffset: -2 });
-  label.position.set(26 + 225 / 2, 24);
+  // лист 278 px: переносим по максимально широкой строке, затем сужаем, пока число строк то же — строки получаются ровными, без «висящего» слова
+  const make = (wrap: number) => pop(text, "Verdana14", COLOR.black, { align: "center", wrap, lineOffset: -2 });
+  let label = make(240);
+  const rows = Math.round(label.textHeight / 23);
+  for (let w = 235; w >= 120; w -= 5) {
+    const t = make(w);
+    if (Math.round(t.textHeight / 23) !== rows) break;
+    label.destroy();
+    label = t;
+  }
+  // по вертикали — по центру области над полосой (y 8..78); три строки не налезают на полосу
+  label.anchor.set(0.5, 0.5);
+  label.position.set(139, 43);
   box.addChild(label);
   const back = image("special_back");
   back.position.set(98, 83);

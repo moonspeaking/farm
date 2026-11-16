@@ -60,13 +60,23 @@ async function main() {
   const world = new Container();
   app.stage.addChild(world);
   const fit = () => {
-    const k = Math.min(app.screen.width / W, app.screen.height / H);
+    const kx = app.screen.width / W;
+    const ky = app.screen.height / H;
+    if (audio.options.stretch) {
+      // режим растяжки: окно заполняется целиком, пропорции экрана не сохраняются
+      world.scale.set(kx, ky);
+      world.position.set(0, 0);
+      setSharp(Math.min(kx, ky) * devicePixelRatio >= 1.75);
+      return;
+    }
+    const k = Math.min(kx, ky);
     world.scale.set(k);
     setSharp(k * devicePixelRatio >= 1.75);
     world.position.set((app.screen.width - W * k) / 2, (app.screen.height - H * k) / 2);
   };
   fit();
   app.renderer.on("resize", fit);
+  window.addEventListener("iris-options", fit);
   // в портретной ориентации экран 4:3 вписывается по ширине и всё мелко — просим повернуть телефон (можно закрыть)
   const rotate = document.getElementById("rotate");
   const checkRotate = () => {

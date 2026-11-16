@@ -96,8 +96,9 @@ export class RidgeView extends Container {
     // точка грядки в exe (0x439b60 / 0x439bf0) — position + dimensions / 2 целочисленным делением: к ней идут Робин и вредители
     this.anchorPoint = [Math.trunc(w / 2), Math.trunc(h / 2)];
     this.ground = image("ridge");
+    // картинка грядки (64×44) крупнее места (47×35) и ставится от его левого верхнего угла: земля уходит правее и ниже точки опоры
     this.ground.anchor.set(0.5);
-    this.ground.position.set(...this.anchorPoint);
+    this.ground.position.set(Math.trunc(this.ground.width / 2), Math.trunc(this.ground.height / 2));
     this.ground.eventMode = "static";
     this.ground.cursor = "default";
     this.ground.on("pointertap", () => this.events.tap(this));

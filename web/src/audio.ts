@@ -131,6 +131,7 @@ class AudioManager {
     if (this.music) this.music.volume = o.music;
     applyCursors(o.cursors);
     saveOptions(o);
+    window.dispatchEvent(new Event("iris-options"));
   }
 }
 

@@ -895,7 +895,7 @@ export class Farm extends Container {
         ghost.alpha = 0.45;
         const cx = place.position[0] + place.dimensions[0] / 2;
         const cy = place.position[1] + place.dimensions[1] / 2;
-        ghost.position.set(cx, cy);
+        ghost.position.set(place.position[0] + Math.trunc(ghost.width / 2), place.position[1] + Math.trunc(ghost.height / 2));
         ghostOf(`ridge:${i}`, ghost);
         const cost = g.buyPrice(this.rules.prices.ridge);
         buyables.push({
