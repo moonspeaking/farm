@@ -75,6 +75,7 @@ interface SaveV3 {
   marks?: string[];
   items?: Record<string, number>;
   bugItems?: Record<string, number>;
+  arrivers?: Record<number, ArriverState>;
 }
 
 interface Save {
@@ -162,7 +163,7 @@ export class Game {
   /** Предметы квестов (ракушки, дубинки…) и сколько их ещё может выпасть из вредителей — общие для локаций. */
   items: Record<string, number> = {};
   bugItems: Record<string, number> = {};
-  /** Волны вредителей по локациям (BugArriver фермы): живут, пока идёт игра, в сохранение не пишутся — как в exe. */
+  /** Волны вредителей по локациям (BugArriver фермы): пишутся в сохранение, чтобы расписание не начиналось заново при каждой загрузке (в exe — заново). */
   arrivers: Record<number, ArriverState> = {};
   loc = 1;
   bouquets: { next: number; orders: BouquetOrder[]; done: number } = { next: 0, orders: [], done: 0 };
@@ -367,7 +368,7 @@ export class Game {
       version: 3, day: this.day, gold: this.gold, exp: this.exp, skills: this.skills,
       kills: this.kills, gathered: this.gathered, attackSpecific: this.attackSpecific, productSpecific: this.productSpecific,
       tutorial: this.tutorial, loc: this.loc, farms: { ...this.farms, [this.loc]: this.snapshot(plants) },
-      questStates: this.questStates, world: this.world, marks: this.marks, items: this.items, bugItems: this.bugItems,
+      questStates: this.questStates, world: this.world, marks: this.marks, items: this.items, bugItems: this.bugItems, arrivers: this.arrivers,
     };
     store.setJson(saveKey(KEYS.saveV3, this.profile), data);
   }
@@ -395,7 +396,7 @@ export class Game {
         Object.assign(this, {
           day: s.day, gold: s.gold, exp: s.exp, skills: s.skills, kills: s.kills, gathered: s.gathered,
           attackSpecific: s.attackSpecific, productSpecific: s.productSpecific, tutorial: s.tutorial,
-          questStates: s.questStates, world: s.world, farms: s.farms, loc: s.loc, marks: s.marks ?? [], items: s.items ?? {}, bugItems: s.bugItems ?? {},
+          questStates: s.questStates, world: s.world, farms: s.farms, loc: s.loc, marks: s.marks ?? [], items: s.items ?? {}, bugItems: s.bugItems ?? {}, arrivers: s.arrivers ?? {},
         });
         this.mergeOldMarks();
         // сохранения до пузырей магазина не знают флагов «действие сделано»: кто уже играл не первый день, их прошёл

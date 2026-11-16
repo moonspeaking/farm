@@ -233,8 +233,8 @@ export class QuestEngine {
           g.helper = false;
           break;
         case "clear_bouquets":
-          // испытания детектива начинают ферму заново: заказы букетов и собранные цветы пропадают
-          g.bouquets = { next: 0, orders: [], done: 0 };
+          // exe (0x434dd0): у каждого заказа обнуляются только положенные цветы; сами заказы и счётчик следующего (+0x144) остаются
+          for (const o of g.bouquets.orders) o.placed = o.items.map(() => null);
           break;
         case "enable_bug_item":
           g.bugItems[a.item] = (g.bugItems[a.item] ?? 0) + n;
